@@ -1,0 +1,68 @@
+name: build
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Rebuild even if this version is already published
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+
+      - uses: actions/setup-python@main
+        with:
+          python-version: "3.12"
+
+      - id: build
+        env:
+          FORCE: ${{ inputs.force }}
+        run: python tools/build.py
+
+      - name: Publish release assets
+        if: steps.build.outputs.published == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for d in dist/*/; do
+            id=$(basename "$d")
+            gh release view "$id" >/dev/null 2>&1 \
+              || gh release create "$id" --title "$id" --notes "Kodi add-on artifacts for $id"
+            gh release upload "$id" "$d"* --clobber
+          done
+
+      - name: Publish index
+        if: steps.build.outputs.published == 'yes'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for b in zips zips22; do
+            git fetch origin "$b:$b"
+            git switch "$b"
+            cp dist/addons.xml dist/addons.xml.sha256 .
+            git add addons.xml addons.xml.sha256
+            git diff --cached --quiet || git commit -m "Index for ${{ steps.build.outputs.version }}"
+            git push origin "$b"
+            git switch master
+          done
+
+      - name: Report drift
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Patch drift at upstream ${{ steps.build.outputs.upstream }}"
+          if [ -z "$(gh issue list --label drift --state open --search "$title" --json number --jq '.[0].number')" ]; then
+            gh issue create --label drift --title "$title" --body \
+              "The build failed for upstream ${{ steps.build.outputs.upstream }}. A patch gate rejected the input, so nothing was published and the previous version keeps serving. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi

@@ -1,0 +1,47 @@
+{
+  "id": "font",
+  "upstream": "jurialmunkey/resource.font.robotocjksc#3",
+  "absent": [
+    [
+      "1080i/Font.xml",
+      "resource.font.af3hebrew"
+    ],
+    [
+      "addon.xml",
+      "resource.font.af3hebrew"
+    ]
+  ],
+  "edits": [
+    {
+      "file": "1080i/Font.xml",
+      "kind": "replace",
+      "count": 2,
+      "contexts": [
+        "b3c049f64db4f8148d46e99d7c0162d2f52e51e01456458901cbc455be5cc900",
+        "e48b88aac489dd68df1a90487e4cb871f1f876977bd9ecc077b7429f9e48474a"
+      ],
+      "find": "resource://resource.font.robotocjksc/Inter-Unicode-Regular.ttf",
+      "with": "resource://resource.font.af3hebrew/Inter-Unicode-Regular.ttf"
+    },
+    {
+      "file": "1080i/Font.xml",
+      "kind": "replace",
+      "count": 1,
+      "contexts": [
+        "d47d54c287ae90faf2f32e98339edc332a51d15437acfd3170c80dfdd988aab9"
+      ],
+      "find": "resource://resource.font.robotocjksc/Inter-Unicode-Bold.ttf",
+      "with": "resource://resource.font.af3hebrew/Inter-Unicode-Bold.ttf"
+    },
+    {
+      "file": "addon.xml",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "b96a75c4a473ef8c2f53630a0b1eb977a60406f42669184c711f69db771dac44"
+      ],
+      "find": "    </requires>",
+      "with": "        <import addon=\"resource.font.af3hebrew\" version=\"1.0.0\" />\n    </requires>"
+    }
+  ]
+}
