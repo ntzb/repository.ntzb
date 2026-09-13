@@ -66,3 +66,4 @@ jobs:
             gh issue create --label drift --title "$title" --body \
               "The build failed for upstream ${{ steps.build.outputs.upstream }}. A patch gate rejected the input, so nothing was published and the previous version keeps serving. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           fi
+
