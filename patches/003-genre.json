@@ -5,6 +5,14 @@
     [
       "1080i/Includes_Info.xml",
       "<!-- Genre -->"
+    ],
+    [
+      "1080i/Includes_Info.xml",
+      "InfoTags.DisableGenre"
+    ],
+    [
+      "1080i/Includes_SkinSettings.xml",
+      "InfoTags.DisableGenre"
     ]
   ],
   "edits": [
@@ -16,7 +24,27 @@
         "3ef9023d0864a87a0e180cb2b72a5ac1087effedd945a411f0596357bfca2516"
       ],
       "find": "                    <!-- Year -->",
-      "with": "                    <!-- Genre -->\n                    <include content=\"Info_Line_Label\">\n                        <param name=\"colordiffuse\">$PARAM[colordiffuse]</param>\n                        <param name=\"label\">$INFO[$PARAM[container]$PARAM[listitem].Genre]</param>\n                        <param name=\"visible\">!String.IsEmpty($PARAM[container]$PARAM[listitem].Genre) + [String.IsEqual($PARAM[container]$PARAM[listitem].DBType,movie) | String.IsEqual($PARAM[container]$PARAM[listitem].DBType,tvshow) | String.IsEqual($PARAM[container]$PARAM[listitem].DBType,episode) | String.IsEqual($PARAM[container]$PARAM[listitem].DBType,season) | String.IsEqual($PARAM[container]$PARAM[listitem].DBType,video) | $PARAM[override]]</param>\n                    </include>\n\n                    <!-- Year -->"
+      "with": "                    <!-- Genre -->\n                    <include content=\"Info_Line_Label\">\n                        <param name=\"colordiffuse\">$PARAM[colordiffuse]</param>\n                        <param name=\"label\">$INFO[$PARAM[container]$PARAM[listitem].Genre]</param>\n                        <param name=\"visible\">!Skin.HasSetting(InfoTags.DisableGenre) + !String.IsEmpty($PARAM[container]$PARAM[listitem].Genre) + [String.IsEqual($PARAM[container]$PARAM[listitem].DBType,movie) | String.IsEqual($PARAM[container]$PARAM[listitem].DBType,tvshow) | String.IsEqual($PARAM[container]$PARAM[listitem].DBType,episode) | String.IsEqual($PARAM[container]$PARAM[listitem].DBType,season) | String.IsEqual($PARAM[container]$PARAM[listitem].DBType,video) | $PARAM[override]]</param>\n                    </include>\n\n                    <!-- Year -->"
+    },
+    {
+      "file": "1080i/Includes_Info.xml",
+      "kind": "replace",
+      "count": 1,
+      "contexts": [
+        "b11bc239cc909565240c53e2401c983dcac26e99358e278ac3e7412ed2089fe9"
+      ],
+      "find": "<param name=\"visible\">!String.IsEmpty($PARAM[container]$PARAM[listitem].MPAA) + [",
+      "with": "<param name=\"visible\">Skin.HasSetting(InfoTags.DisableGenre) + !String.IsEmpty($PARAM[container]$PARAM[listitem].MPAA) + ["
+    },
+    {
+      "file": "1080i/Includes_SkinSettings.xml",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "dac6e433b3219ed7be6f33dc028832afdea606d40763895bbe48f2c43850d5d6"
+      ],
+      "find": "            <onclick>Skin.ToggleSetting(InfoTags.DisableStarRating)</onclick>\n            <selected>!Skin.HasSetting(InfoTags.DisableStarRating)</selected>\n        </include>\n",
+      "with": "            <onclick>Skin.ToggleSetting(InfoTags.DisableStarRating)</onclick>\n            <selected>!Skin.HasSetting(InfoTags.DisableStarRating)</selected>\n        </include>\n        <include content=\"Settings_Button\" description=\"Genre instead of age rating\">\n            <param name=\"dialog\">false</param>\n            <param name=\"window\">skinsettings</param>\n            <param name=\"baseid\">$PARAM[baseid]</param>\n            <param name=\"id\">901</param>\n            <param name=\"control\">radiobutton</param>\n            <label>Genre</label>\n            <onclick>Skin.ToggleSetting(InfoTags.DisableGenre)</onclick>\n            <selected>!Skin.HasSetting(InfoTags.DisableGenre)</selected>\n        </include>\n"
     }
   ]
 }

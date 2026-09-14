@@ -61,20 +61,46 @@ DBTYPES = " | ".join(
     "String.IsEqual($PARAM[container]$PARAM[listitem].DBType,%s)" % t
     for t in ("movie", "tvshow", "episode", "season", "video"))
 
+GENRE_SETTING = "InfoTags.DisableGenre"   # absent: genre. present: age rating.
+
 GENRE_ANCHOR = "                    <!-- Year -->"
 
 GENRE_BLOCK = """                    <!-- Genre -->
                     <include content="Info_Line_Label">
                         <param name="colordiffuse">$PARAM[colordiffuse]</param>
                         <param name="label">$INFO[$PARAM[container]$PARAM[listitem].Genre]</param>
-                        <param name="visible">!String.IsEmpty($PARAM[container]$PARAM[listitem].Genre) + [%s | $PARAM[override]]</param>
+                        <param name="visible">!Skin.HasSetting(%s) + !String.IsEmpty($PARAM[container]$PARAM[listitem].Genre) + [%s | $PARAM[override]]</param>
                     </include>
 
-""" % DBTYPES + GENRE_ANCHOR
+""" % (GENRE_SETTING, DBTYPES) + GENRE_ANCHOR
+
+MPAA_FIND = '<param name="visible">!String.IsEmpty($PARAM[container]$PARAM[listitem].MPAA) + ['
+MPAA_WITH = ('<param name="visible">Skin.HasSetting(%s) + '
+             '!String.IsEmpty($PARAM[container]$PARAM[listitem].MPAA) + [' % GENRE_SETTING)
+
+GENRE_TOGGLE_ANCHOR = (
+    "            <onclick>Skin.ToggleSetting(InfoTags.DisableStarRating)</onclick>\n"
+    "            <selected>!Skin.HasSetting(InfoTags.DisableStarRating)</selected>\n"
+    "        </include>\n"
+)
+
+GENRE_TOGGLE = GENRE_TOGGLE_ANCHOR + """        <include content="Settings_Button" description="Genre instead of age rating">
+            <param name="dialog">false</param>
+            <param name="window">skinsettings</param>
+            <param name="baseid">$PARAM[baseid]</param>
+            <param name="id">901</param>
+            <param name="control">radiobutton</param>
+            <label>Genre</label>
+            <onclick>Skin.ToggleSetting(%s)</onclick>
+            <selected>!Skin.HasSetting(%s)</selected>
+        </include>
+""" % (GENRE_SETTING, GENRE_SETTING)
 
 
 def genre_edits():
     yield INFO, "insert", GENRE_ANCHOR, GENRE_BLOCK
+    yield INFO, "replace", MPAA_FIND, MPAA_WITH
+    yield SKINSET, "insert", GENRE_TOGGLE_ANCHOR, GENRE_TOGGLE
 
 
 def font_edits():
@@ -111,7 +137,8 @@ def main(tree, outdir):
                 [[FONTXML, FONT_ADDON], ["addon.xml", FONT_ADDON]], font_edits)
     print("003-genre:")
     three = build(tree, "genre-in-infoline", "feature request to be offered",
-                  [[INFO, "<!-- Genre -->"]], genre_edits)
+                  [[INFO, "<!-- Genre -->"], [INFO, GENRE_SETTING], [SKINSET, GENRE_SETTING]],
+                  genre_edits)
     for name, desc in (("001-text-title.json", one), ("002-font.json", two),
                        ("003-genre.json", three)):
         with open(os.path.join(outdir, name), "wb") as fh:
