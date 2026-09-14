@@ -57,6 +57,26 @@ def title_edits():
     yield SKINSET, "insert", SETTINGS_ANCHOR, SETTINGS_BUTTON
 
 
+DBTYPES = " | ".join(
+    "String.IsEqual($PARAM[container]$PARAM[listitem].DBType,%s)" % t
+    for t in ("movie", "tvshow", "episode", "season", "video"))
+
+GENRE_ANCHOR = "                    <!-- Year -->"
+
+GENRE_BLOCK = """                    <!-- Genre -->
+                    <include content="Info_Line_Label">
+                        <param name="colordiffuse">$PARAM[colordiffuse]</param>
+                        <param name="label">$INFO[$PARAM[container]$PARAM[listitem].Genre]</param>
+                        <param name="visible">!String.IsEmpty($PARAM[container]$PARAM[listitem].Genre) + [%s | $PARAM[override]]</param>
+                    </include>
+
+""" % DBTYPES + GENRE_ANCHOR
+
+
+def genre_edits():
+    yield INFO, "insert", GENRE_ANCHOR, GENRE_BLOCK
+
+
 def font_edits():
     for weight in ("Regular", "Bold"):
         f = "resource://resource.font.robotocjksc/Inter-Unicode-%s.ttf" % weight
@@ -89,7 +109,11 @@ def main(tree, outdir):
     print("002-font:")
     two = build(tree, "font", "jurialmunkey/resource.font.robotocjksc#3",
                 [[FONTXML, FONT_ADDON], ["addon.xml", FONT_ADDON]], font_edits)
-    for name, desc in (("001-text-title.json", one), ("002-font.json", two)):
+    print("003-genre:")
+    three = build(tree, "genre-in-infoline", "feature request to be offered",
+                  [[INFO, "<!-- Genre -->"]], genre_edits)
+    for name, desc in (("001-text-title.json", one), ("002-font.json", two),
+                       ("003-genre.json", three)):
         with open(os.path.join(outdir, name), "wb") as fh:
             fh.write((json.dumps(desc, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
         print("wrote %s" % name)
