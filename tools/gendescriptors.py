@@ -65,14 +65,38 @@ GENRE_SETTING = "InfoTags.DisableGenre"   # absent: genre. present: age rating.
 
 GENRE_ANCHOR = "                    <!-- Year -->"
 
-GENRE_BLOCK = """                    <!-- Genre -->
-                    <include content="Info_Line_Label">
-                        <param name="colordiffuse">$PARAM[colordiffuse]</param>
-                        <param name="label">$INFO[$PARAM[container]$PARAM[listitem].Genre]</param>
-                        <param name="visible">!Skin.HasSetting(%s) + !String.IsEmpty($PARAM[container]$PARAM[listitem].Genre) + [%s | $PARAM[override]]</param>
-                    </include>
+# Kodi joins ListItem.Genre with " / " and offers no way to index it, so the first
+# genre is recovered by prefix-matching the joined string. Longer names first: both
+# "Action" and "Action & Adventure" would match a StartsWith on "Action".
+GENRES = (
+    "Action & Adventure", "Sci-Fi & Fantasy", "War & Politics", "Science Fiction", "TV Movie",
+    "Action", "Adventure", "Animation", "Comedy", "Crime", "Documentary", "Drama", "Family",
+    "Fantasy", "History", "Horror", "Kids", "Music", "Mystery", "News", "Reality", "Romance",
+    "Soap", "Talk", "Thriller", "War", "Western",
+)
 
-""" % (GENRE_SETTING, DBTYPES) + GENRE_ANCHOR
+_GENRE_LABEL = """                    <include content="Info_Line_Label">
+                        <param name="colordiffuse">$PARAM[colordiffuse]</param>
+                        <param name="label">%s</param>
+                        <param name="visible">!Skin.HasSetting(%s) + %s + [%s | $PARAM[override]]</param>
+                    </include>
+"""
+
+
+def _genre_labels():
+    # No TMDb genre contains "/", so a slash in the joined string means more than one.
+    multi = "String.Contains($PARAM[container]$PARAM[listitem].Genre,/)"
+    yield _GENRE_LABEL % (
+        "$INFO[$PARAM[container]$PARAM[listitem].Genre]", GENRE_SETTING,
+        "!String.IsEmpty($PARAM[container]$PARAM[listitem].Genre) + !" + multi, DBTYPES)
+    for g in GENRES:
+        x = g.replace("&", "&amp;")   # these land inside XML attributes and text
+        cond = "%s + String.StartsWith($PARAM[container]$PARAM[listitem].Genre,%s)" % (multi, x)
+        yield _GENRE_LABEL % (x, GENRE_SETTING, cond, DBTYPES)
+
+
+GENRE_BLOCK = ("                    <!-- Genre -->\n"
+               + "".join(_genre_labels()) + "\n" + GENRE_ANCHOR)
 
 MPAA_FIND = '<param name="visible">!String.IsEmpty($PARAM[container]$PARAM[listitem].MPAA) + ['
 MPAA_WITH = ('<param name="visible">Skin.HasSetting(%s) + '

@@ -17,7 +17,7 @@ import patchlib
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UPSTREAM = "https://raw.githubusercontent.com/jurialmunkey/repository.jurialmunkey/master/omega/zips"
 SKIN = "skin.arctic.fuse.3"
-BUILD_N = 3
+BUILD_N = 4
 
 def log(msg):
     print(msg, flush=True)
