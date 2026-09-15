@@ -1,0 +1,22 @@
+{
+  "id": "english-artwork",
+  "upstream": "jurialmunkey/plugin.video.themoviedb.helper#1181",
+  "absent": [
+    [
+      "resources/tmdbhelper/lib/api/tmdb/api.py",
+      "return 'en,null'"
+    ]
+  ],
+  "edits": [
+    {
+      "file": "resources/tmdbhelper/lib/api/tmdb/api.py",
+      "kind": "replace",
+      "count": 1,
+      "contexts": [
+        "88af560445f6d86cfe29283f73ccb56ccf5aee3d377e954b4622cb77f4dc03fd"
+      ],
+      "find": "    def include_image_language(self):\n        return f'{self.iso_language},null,en'\n",
+      "with": "    def include_image_language(self):\n        return 'en,null'\n"
+    }
+  ]
+}

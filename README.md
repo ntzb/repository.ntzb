@@ -1,7 +1,7 @@
 # repository.ntzb
 
-A personal Kodi add-on repository serving patched builds of **Arctic Fuse 3** and of Kodi's
-**TMDb movie scraper**, rebuilt automatically from each upstream release.
+A personal Kodi add-on repository serving patched builds of **Arctic Fuse 3**, **TMDb Helper**
+and Kodi's **TMDb movie scraper**, rebuilt automatically from each upstream release.
 
 ## What is patched
 
@@ -45,6 +45,51 @@ with **Keep Original Title** off. Kodi then offers to refresh every item in the 
 the scraped fields only — watched state and resume points hang off the file, not off the scraped
 record, so they survive.
 
+### plugin.video.themoviedb.helper
+
+| # | change | upstream |
+|---|--------|----------|
+| 001 | the English title, whatever language the plot is in | PR to be offered |
+| 002 | artwork chosen in English or textless, never in the interface language | [#1181](https://github.com/jurialmunkey/plugin.video.themoviedb.helper/issues/1181) |
+
+TMDb Helper has one language setting and it drives everything: with it set to Hebrew the titles,
+the plots and the posters all come back Hebrew, and nothing in the add-on, the skin or Kodi splits
+them apart. [#707](https://github.com/jurialmunkey/plugin.video.themoviedb.helper/issues/707) asked
+for exactly this and was closed as impossible — *"TMDB api does not have the the option to specify
+a fallback language ... otherwise it would double the item details lookup time"*.
+
+It does not have to. The add-on already knows how to ask for `translations` alongside the item
+details it fetches for every uncached list item, because that is how its English plot fallback
+works. Riding along on that same call, the English title is free:
+
+```diff
++        title = self.get_instance_cached_data_value(instance, 'title') or self.get_data_value('originaltitle')
+```
+
+TMDb leaves the English translation's title blank when a title is already English and fills it in
+when it is not, so between that translation and `original_title` there is an English title for
+everything TMDb has one for — `Parasite` for `פרזיטים`, `The Goonies` for `הגוניס`. Titles only for
+movies, tv shows, seasons and episodes; people and collections are left alone.
+
+The cost is a larger response, not another request: `translations` adds about 30 KB to a roughly
+200 KB item lookup, and those rows land in the add-on's own cache database. `translations` is
+fetched unconditionally rather than behind the existing plot-fallback setting, so that items
+already cached without them fail the cache condition and are refetched once.
+
+Artwork preference is hardcoded language, then English, then textless, and jurialmunkey has said
+that is deliberate, so the only lever left is to stop asking TMDb for Hebrew images at all:
+
+```diff
+-        return f'{self.iso_language},null,en'
++        return 'en,null'
+```
+
+It is published under the **stock add-on id**, unlike the scraper. Arctic Fuse 3 imports
+`plugin.video.themoviedb.helper` by name in a non-optional `<requires>`, the add-on's Trakt token
+lives in its own settings, and it runs a background service that owns the `TMDbHelper.*` window
+properties — so a renamed fork would need the skin rewritten around it, would cost the user their
+Trakt login, and would have two services fighting over the same properties.
+
 **Upstreaming is the plan of record.** When a patch is merged upstream it is deleted here, not
 maintained.
 
@@ -71,6 +116,11 @@ branches.
 Kodi records the repo an add-on came from and only ever checks that repo for updates, so step 3 is
 what makes future updates arrive from here. Installing Arctic Fuse 3 from jurialmunkey's repository
 again would silently drop both patches.
+
+TMDb Helper is published under the stock id for the reasons above, so it needs the same treatment:
+Add-ons → My add-ons → Video add-ons → TMDb Helper → **Choose version** → the entry labelled
+**ntzb Repository**. Settings and the Trakt authorisation carry over untouched, because the add-on
+id — and therefore its `addon_data` directory — is unchanged.
 
 The scraper has no such conflict: it is a separate add-on id, installed from
 Add-ons → Install from repository → ntzb Repository → Information providers → Movie information.

@@ -1,0 +1,66 @@
+{
+  "id": "english-title",
+  "upstream": "PR to be offered to jurialmunkey",
+  "absent": [
+    [
+      "resources/tmdbhelper/lib/items/database/itemmeta_factories/concrete_classes/baseclass.py",
+      "get_infolabels_english_title"
+    ],
+    [
+      "resources/tmdbhelper/lib/items/database/itemmeta_factories/concrete_classes/basemedia.py",
+      "english_title_route"
+    ]
+  ],
+  "edits": [
+    {
+      "file": "resources/tmdbhelper/lib/items/database/baseitem_factories/concrete_classes/baseclass.py",
+      "kind": "replace",
+      "count": 1,
+      "contexts": [
+        "99a955083770a0891e6cf37fbfcc81e6e0b02b3833ec8d2ef61466cb2d15f1aa"
+      ],
+      "find": "    @property\n    def is_translation(self):\n        if self.cache_refresh == 'force':\n            return True\n        if self.cache_translations:\n            return True\n        if get_setting('force_english_plot_fallback'):\n            return True\n        return False\n",
+      "with": "    @property\n    def is_translation(self):\n        return True\n"
+    },
+    {
+      "file": "resources/tmdbhelper/lib/items/database/itemmeta_factories/concrete_classes/baseclass.py",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "d9c1c8482af8f89864cf7ddd186b9d133dbfa482b330c88b0aea1a61309b246d"
+      ],
+      "find": "    infoproperties_dbclist_routes = ()\n",
+      "with": "    infoproperties_dbclist_routes = ()\n    english_title_route = None\n"
+    },
+    {
+      "file": "resources/tmdbhelper/lib/items/database/itemmeta_factories/concrete_classes/baseclass.py",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "c48917d768e96f66c12c85b5036d1f43d31ce6f2248d1ba19d3039710f08a4a8"
+      ],
+      "find": "    def get_infolabels_special(self, infolabels):\n        return infolabels\n",
+      "with": "    def get_infolabels_english_title(self, infolabels):\n        if not self.english_title_route:\n            return infolabels\n        instance = self.return_basemeta_db(*self.english_title_route)\n        title = self.get_instance_cached_data_value(instance, 'title') or self.get_data_value('originaltitle')\n        if title:\n            infolabels['title'] = title\n        return infolabels\n\n    def get_infolabels_special(self, infolabels):\n        return infolabels\n"
+    },
+    {
+      "file": "resources/tmdbhelper/lib/items/database/itemmeta_factories/concrete_classes/baseclass.py",
+      "kind": "replace",
+      "count": 1,
+      "contexts": [
+        "d2486adcf9bc59af883099bb84bc4c21cb2fa5d95dc89ff79569068d0115ffe0"
+      ],
+      "find": "        infolabels = self.get_infolabels_special(infolabels)\n        return infolabels\n",
+      "with": "        infolabels = self.get_infolabels_special(infolabels)\n        infolabels = self.get_infolabels_english_title(infolabels)\n        return infolabels\n"
+    },
+    {
+      "file": "resources/tmdbhelper/lib/items/database/itemmeta_factories/concrete_classes/basemedia.py",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "2a52c633b05386164022071794f20d072136515360e4f9d0d4dea0e62ec1325d"
+      ],
+      "find": "    infolabels_dbclist_routes = (\n        MediaItemInfoLabelItemRoutes.genre,\n        MediaItemInfoLabelItemRoutes.country,\n        MediaItemInfoLabelItemRoutes.director,\n        MediaItemInfoLabelItemRoutes.writer,\n    )\n",
+      "with": "    english_title_route = ('english_translation', None)\n\n    infolabels_dbclist_routes = (\n        MediaItemInfoLabelItemRoutes.genre,\n        MediaItemInfoLabelItemRoutes.country,\n        MediaItemInfoLabelItemRoutes.director,\n        MediaItemInfoLabelItemRoutes.writer,\n    )\n"
+    }
+  ]
+}

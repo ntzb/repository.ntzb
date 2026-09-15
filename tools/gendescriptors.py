@@ -14,6 +14,7 @@ import patchlib
 
 SKIN = "skin.arctic.fuse.3"
 SCRAPER = "metadata.themoviedb.org.python.ntzb"
+HELPER = "plugin.video.themoviedb.helper"
 
 SETTING = "View.DisableClearlogoTitle"
 FONT_ADDON = "resource.font.af3hebrew"
@@ -140,6 +141,103 @@ def font_edits():
         '        <import addon="%s" version="1.1.0" />\n    </requires>' % FONT_ADDON
 
 
+HELPER_ITEMMETA = "resources/tmdbhelper/lib/items/database/itemmeta_factories/concrete_classes/baseclass.py"
+HELPER_BASEMEDIA = "resources/tmdbhelper/lib/items/database/itemmeta_factories/concrete_classes/basemedia.py"
+HELPER_BASEITEM = "resources/tmdbhelper/lib/items/database/baseitem_factories/concrete_classes/baseclass.py"
+HELPER_TMDBAPI = "resources/tmdbhelper/lib/api/tmdb/api.py"
+
+SPECIAL_ANCHOR = """    def get_infolabels_special(self, infolabels):
+        return infolabels
+"""
+
+# TMDb leaves the English translation's title blank when the title is already
+# English and fills it in when it is not, so between that translation and the
+# original title there is an English title for everything TMDb has one for.
+ROUTE_ATTR_ANCHOR = """    infoproperties_dbclist_routes = ()
+"""
+
+ROUTE_ATTR_WITH = ROUTE_ATTR_ANCHOR + """    english_title_route = None
+"""
+
+ENGLISH_TITLE_METHOD = """    def get_infolabels_english_title(self, infolabels):
+        if not self.english_title_route:
+            return infolabels
+        instance = self.return_basemeta_db(*self.english_title_route)
+        title = self.get_instance_cached_data_value(instance, 'title') or self.get_data_value('originaltitle')
+        if title:
+            infolabels['title'] = title
+        return infolabels
+
+""" + SPECIAL_ANCHOR
+
+INFOLABELS_ANCHOR = """        infolabels = self.get_infolabels_special(infolabels)
+        return infolabels
+"""
+
+INFOLABELS_WITH = """        infolabels = self.get_infolabels_special(infolabels)
+        infolabels = self.get_infolabels_english_title(infolabels)
+        return infolabels
+"""
+
+MEDIAITEM_ANCHOR = """    infolabels_dbclist_routes = (
+        MediaItemInfoLabelItemRoutes.genre,
+        MediaItemInfoLabelItemRoutes.country,
+        MediaItemInfoLabelItemRoutes.director,
+        MediaItemInfoLabelItemRoutes.writer,
+    )
+"""
+
+MEDIAITEM_WITH = """    english_title_route = ('english_translation', None)
+
+""" + MEDIAITEM_ANCHOR
+
+IS_TRANSLATION_FIND = """    @property
+    def is_translation(self):
+        if self.cache_refresh == 'force':
+            return True
+        if self.cache_translations:
+            return True
+        if get_setting('force_english_plot_fallback'):
+            return True
+        return False
+"""
+
+IS_TRANSLATION_WITH = """    @property
+    def is_translation(self):
+        return True
+"""
+
+
+def helper_english_title_edits():
+    # A list already makes one details call per uncached item, and 'translations'
+    # rides along on it through append_to_response, so the English title costs a
+    # bigger response rather than another request. Unconditional rather than behind
+    # the existing plot-fallback setting: rows already cached without translations
+    # then fail the baseitem.translation cache condition and are refetched.
+    yield HELPER_BASEITEM, "replace", IS_TRANSLATION_FIND, IS_TRANSLATION_WITH
+    yield HELPER_ITEMMETA, "insert", ROUTE_ATTR_ANCHOR, ROUTE_ATTR_WITH
+    yield HELPER_ITEMMETA, "insert", SPECIAL_ANCHOR, ENGLISH_TITLE_METHOD
+    yield HELPER_ITEMMETA, "replace", INFOLABELS_ANCHOR, INFOLABELS_WITH
+    yield HELPER_BASEMEDIA, "insert", MEDIAITEM_ANCHOR, MEDIAITEM_WITH
+
+
+IMAGE_LANGUAGE_FIND = """    def include_image_language(self):
+        return f'{self.iso_language},null,en'
+"""
+
+IMAGE_LANGUAGE_WITH = """    def include_image_language(self):
+        return 'en,null'
+"""
+
+
+def helper_english_artwork_edits():
+    # Artwork preference is hardcoded language -> english -> null, so the only way
+    # to demote Hebrew posters and logos is to stop asking TMDb for them. Video
+    # language is left alone: a trailer is not text.
+    yield HELPER_TMDBAPI, "replace", IMAGE_LANGUAGE_FIND, IMAGE_LANGUAGE_WITH
+
+
+
 def build(tree, pid, upstream, absent, gen):
     edits = []
     for rel, kind, find, with_ in gen():
@@ -189,6 +287,13 @@ TARGETS = {
     SCRAPER: (
         ("001-english-title.json", "english-title", "PR to be offered to xbmc",
          [[TMDB, "movie_fallback.get('title')"], [TMDB, "self.urls, 'en')"]], english_title_edits),
+    ),
+    HELPER: (
+        ("001-english-title.json", "english-title", "PR to be offered to jurialmunkey",
+         [[HELPER_ITEMMETA, "get_infolabels_english_title"], [HELPER_BASEMEDIA, "english_title_route"]],
+         helper_english_title_edits),
+        ("002-english-artwork.json", "english-artwork", "jurialmunkey/plugin.video.themoviedb.helper#1181",
+         [[HELPER_TMDBAPI, "return 'en,null'"]], helper_english_artwork_edits),
     ),
 }
 
