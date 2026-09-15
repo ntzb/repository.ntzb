@@ -77,7 +77,7 @@
 </addon>
 <addon id="metadata.themoviedb.org.python.ntzb"
        name="The Movie Database Python (ntzb)"
-       version="3.2.2+ntzb1"
+       version="3.2.2+ntzb2"
        provider-name="Team Kodi">
   <requires>
     <import addon="xbmc.metadata" version="2.1.0"/>
