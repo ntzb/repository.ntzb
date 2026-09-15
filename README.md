@@ -12,17 +12,37 @@ and Kodi's **TMDb movie scraper**, rebuilt automatically from each upstream rele
 | 001 | a skin setting to show titles as text instead of clearlogo art, in library lists and the video OSD | PR to be offered |
 | 002 | Hebrew final forms restored to the Unicode fontset | [robotocjksc#3](https://github.com/jurialmunkey/resource.font.robotocjksc/issues/3), [rsms/inter#903](https://github.com/rsms/inter/issues/903) |
 | 003 | the first genre in the info line, in place of the age rating, behind a skin setting | feature request to be offered |
-| 004 | a placeholder in the meta row while TMDb Helper is still fetching, behind a skin setting | feature request to be offered |
+| 004 | the stale half of the meta row held back behind a loading placeholder while TMDb Helper fetches, behind a skin setting | feature request to be offered |
 
 Patch 004 exists because the ratings, status and awards in the info row come from TMDb Helper's
-service monitor, which answers a focus change some way after the cursor has moved: until it does,
-the row is blank. The monitor already says when it is working — `TMDbHelper.IsUpdating` around the
-blocking details build and `TMDbHelper.IsUpdatingRatings` around the ratings thread — so the patch
-fills the gap with the skin's own `Widget_Busy_BlankItem` placeholder bar, one per rating slot the
-user has configured, faded in after 400ms so a single step of the cursor never flashes it. It shows
-only when the row is genuinely empty: the monitor overwrites properties rather than clearing them,
-so a value on screen mid-fetch is the previous item's, and a placeholder beside it would be a second
-answer to the same question.
+service monitor, which answers a focus change some way after the cursor has moved — three or four
+seconds of it, in a TMDb Helper list. It does not blank the row while it works: the monitor
+overwrites properties rather than clearing them first, so what stands there for those seconds is
+the *previous* item's rating, presented as if it belonged to the item now under the cursor. That,
+not the empty row, is the thing worth fixing.
+
+The monitor says when it is working, and says it twice, for two different halves of the row:
+`TMDbHelper.IsUpdating` is set around the blocking details build and `TMDbHelper.IsUpdatingRatings`
+around the ratings thread that follows it. Which flag bounds which field is readable off the
+add-on: the rating properties, `Top250` and `Oscar_Wins` all come out of the ratings thread, so they
+are stale until `IsUpdatingRatings` clears; `Status` arrives with the details, so it is stale only
+until `IsUpdating` does. There is no id property that would answer this more precisely — both
+`ListItem.base_tmdb_id` and `ListItem.monitor.tmdb_id` are written ahead of the values they belong
+to, so either one matches the cursor again while the previous item's ratings are still on screen.
+
+So while a field is stale it leaves, and the skin's own `Widget_Busy_BlankItem` placeholder bar
+stands in its place — one per rating slot the user has configured. Both movements are on the same
+one-second timer, which is what keeps a cached item from flickering: the value hides behind a
+`Hidden` animation, which Kodi holds visible and laid out for the whole of its delay, and the bar
+appears behind a `Visible` animation, which Kodi leaves out of the layout for the whole of *its*
+delay. For the first second nothing moves; after it, the stale value fades out as the bar fades in.
+Status and awards leave on the same timer but get no bar of their own — a rating slot is a promise
+the user configured, while whether the next item carries a status or an Oscar is not known until it
+arrives.
+
+The timings are reasoned from the add-on's source rather than measured on a device, so the row can
+show its own workings: a second skin setting, off by default, adds a live readout of both flags,
+the three id properties and a rating to the end of the row.
 
 Patch 002 exists because `resource.font.robotocjksc`'s `Inter-Unicode` fonts have no glyph for
 U+05DA ך, U+05DD ם or U+05E5 ץ, so every Hebrew word ending in kaf, mem or tsadi loses its last
