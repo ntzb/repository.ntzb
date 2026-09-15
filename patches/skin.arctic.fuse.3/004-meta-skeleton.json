@@ -1,0 +1,60 @@
+{
+  "id": "meta-skeleton",
+  "upstream": "feature request to be offered",
+  "absent": [
+    [
+      "1080i/Includes_Expressions.xml",
+      "Exp_TMDbHelper_IsSkeleton"
+    ],
+    [
+      "1080i/Includes_Info.xml",
+      "Info_Meta_Skeleton"
+    ],
+    [
+      "1080i/Includes_SkinSettings.xml",
+      "InfoTags.DisableMetaSkeleton"
+    ]
+  ],
+  "edits": [
+    {
+      "file": "1080i/Includes_Expressions.xml",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "f19de0f195985c3d22c68f5c6bf107bcc3c6262faa3ed35fd0823d3e21bd8940"
+      ],
+      "find": "    <expression name=\"Exp_TMDbHelper_IsCrop\">[Skin.HasSetting(TMDbHelper.EnableCrop)]</expression>\n",
+      "with": "    <expression name=\"Exp_TMDbHelper_IsCrop\">[Skin.HasSetting(TMDbHelper.EnableCrop)]</expression>\n    <expression name=\"Exp_TMDbHelper_IsSkeleton\">[$EXP[Exp_TMDbHelper_IsData] + !Skin.HasSetting(InfoTags.DisableMetaSkeleton) + [!String.IsEmpty(Window(Home).Property(TMDbHelper.IsUpdating)) | !String.IsEmpty(Window(Home).Property(TMDbHelper.IsUpdatingRatings))]]</expression>\n"
+    },
+    {
+      "file": "1080i/Includes_Info.xml",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "06aacf92bd615be0cf660e2958bb66e58dc8a937a954556672d6402aa0487ff2"
+      ],
+      "find": "    <include name=\"Info_Meta_Item_Row\">",
+      "with": "    <include name=\"Info_Meta_Skeleton\">\n        <param name=\"service\">ListItem</param>\n        <param name=\"width\">96</param>\n        <definition>\n            <control type=\"group\" description=\"Placeholder held until TMDbHelper has answered for this item\">\n                <width>$PARAM[width]</width>\n                <height>40</height>\n                <visible>$PARAM[visible]</visible>\n                <visible>$EXP[Exp_TMDbHelper_IsSkeleton]</visible>\n                <visible>String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].MetaCritic_Rating)) + String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].RottenTomatoes_UserMeter)) + String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].RottenTomatoes_Rating)) + String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].Trakt_Rating)) + String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].IMDb_Rating)) + String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].TMDb_Rating)) + String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].MDBList_Rating)) + String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].Letterboxd_Rating)) + String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].MyAnimeList_Rating)) + String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].Status)) + String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].Oscar_Wins))</visible>\n                <animation type=\"Visible\" reversible=\"false\">\n                    <effect type=\"fade\" start=\"0\" end=\"100\" time=\"200\" delay=\"400\" />\n                </animation>\n                <control type=\"image\">\n                    <top>8</top>\n                    <bottom>8</bottom>\n                    <texture colordiffuse=\"main_fg_12\" border=\"12\">common/widget_text.png</texture>\n                    <animation type=\"Conditional\" condition=\"true\" reversible=\"false\" loop=\"true\">\n                        <effect type=\"fade\" start=\"100\" end=\"45\" time=\"900\" pulse=\"true\" reversible=\"false\" />\n                    </animation>\n                </control>\n            </control>\n        </definition>\n    </include>\n\n    <include name=\"Info_Meta_Item_Row\">"
+    },
+    {
+      "file": "1080i/Includes_Info.xml",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "65a017bf7d899a6336037a924cb6f67edd945fd330698e288a8da5d159766d8a"
+      ],
+      "find": "                    <!-- Ratings -->",
+      "with": "                    <!-- Ratings Placeholder -->\n                    <include content=\"Info_Meta_Skeleton\" condition=\"$EXP[Exp_TMDbHelper_IsData]\">\n                        <param name=\"visible\">[String.IsEqual($PARAM[container]$PARAM[listitem].DBType,movie) | $PARAM[override_movie]] + !String.IsEmpty(Skin.String(CustomRating.Movies.Item01))</param>\n                        <param name=\"service\">$PARAM[service]</param>\n                    </include>\n                    <include content=\"Info_Meta_Skeleton\" condition=\"$EXP[Exp_TMDbHelper_IsData]\">\n                        <param name=\"visible\">[String.IsEqual($PARAM[container]$PARAM[listitem].DBType,movie) | $PARAM[override_movie]] + !String.IsEmpty(Skin.String(CustomRating.Movies.Item02))</param>\n                        <param name=\"service\">$PARAM[service]</param>\n                    </include>\n                    <include content=\"Info_Meta_Skeleton\" condition=\"$EXP[Exp_TMDbHelper_IsData]\">\n                        <param name=\"visible\">[String.IsEqual($PARAM[container]$PARAM[listitem].DBType,movie) | $PARAM[override_movie]] + !String.IsEmpty(Skin.String(CustomRating.Movies.Item03))</param>\n                        <param name=\"service\">$PARAM[service]</param>\n                    </include>\n                    <include content=\"Info_Meta_Skeleton\" condition=\"$EXP[Exp_TMDbHelper_IsData]\">\n                        <param name=\"visible\">[String.IsEqual($PARAM[container]$PARAM[listitem].DBType,tvshow) | String.IsEqual($PARAM[container]$PARAM[listitem].DBType,season) | $PARAM[override_tvshow]] + !String.IsEmpty(Skin.String(CustomRating.TVShows.Item01))</param>\n                        <param name=\"service\">$PARAM[service]</param>\n                    </include>\n                    <include content=\"Info_Meta_Skeleton\" condition=\"$EXP[Exp_TMDbHelper_IsData]\">\n                        <param name=\"visible\">[String.IsEqual($PARAM[container]$PARAM[listitem].DBType,tvshow) | String.IsEqual($PARAM[container]$PARAM[listitem].DBType,season) | $PARAM[override_tvshow]] + !String.IsEmpty(Skin.String(CustomRating.TVShows.Item02))</param>\n                        <param name=\"service\">$PARAM[service]</param>\n                    </include>\n                    <include content=\"Info_Meta_Skeleton\" condition=\"$EXP[Exp_TMDbHelper_IsData]\">\n                        <param name=\"visible\">[String.IsEqual($PARAM[container]$PARAM[listitem].DBType,tvshow) | String.IsEqual($PARAM[container]$PARAM[listitem].DBType,season) | $PARAM[override_tvshow]] + !String.IsEmpty(Skin.String(CustomRating.TVShows.Item03))</param>\n                        <param name=\"service\">$PARAM[service]</param>\n                    </include>\n\n                    <!-- Ratings -->"
+    },
+    {
+      "file": "1080i/Includes_SkinSettings.xml",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "d410a6dd4d659693708e73e05f6cad450151db0907de7b752e4917c1fe51597d"
+      ],
+      "find": "            <onclick>SetProperty(CustomDialogSettingsItems,DialogCustom_Ratings_TVShows_Items,Home)</onclick>\n            <onclick>ActivateWindow(1118)</onclick>\n            <visible>$EXP[Exp_TMDbHelper_IsData]</visible>\n        </include>\n",
+      "with": "            <onclick>SetProperty(CustomDialogSettingsItems,DialogCustom_Ratings_TVShows_Items,Home)</onclick>\n            <onclick>ActivateWindow(1118)</onclick>\n            <visible>$EXP[Exp_TMDbHelper_IsData]</visible>\n        </include>\n\n        <include content=\"Settings_Button\" description=\"Ratings loading placeholder\">\n            <param name=\"dialog\">false</param>\n            <param name=\"window\">skinsettings</param>\n            <param name=\"baseid\">$PARAM[baseid]</param>\n            <param name=\"id\">902</param>\n            <param name=\"control\">radiobutton</param>\n            <label>Loading placeholder</label>\n            <onclick>Skin.ToggleSetting(InfoTags.DisableMetaSkeleton)</onclick>\n            <selected>!Skin.HasSetting(InfoTags.DisableMetaSkeleton)</selected>\n            <visible>$EXP[Exp_TMDbHelper_IsData]</visible>\n        </include>\n"
+    }
+  ]
+}

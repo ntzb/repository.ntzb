@@ -12,6 +12,17 @@ and Kodi's **TMDb movie scraper**, rebuilt automatically from each upstream rele
 | 001 | a skin setting to show titles as text instead of clearlogo art, in library lists and the video OSD | PR to be offered |
 | 002 | Hebrew final forms restored to the Unicode fontset | [robotocjksc#3](https://github.com/jurialmunkey/resource.font.robotocjksc/issues/3), [rsms/inter#903](https://github.com/rsms/inter/issues/903) |
 | 003 | the first genre in the info line, in place of the age rating, behind a skin setting | feature request to be offered |
+| 004 | a placeholder in the meta row while TMDb Helper is still fetching, behind a skin setting | feature request to be offered |
+
+Patch 004 exists because the ratings, status and awards in the info row come from TMDb Helper's
+service monitor, which answers a focus change some way after the cursor has moved: until it does,
+the row is blank. The monitor already says when it is working — `TMDbHelper.IsUpdating` around the
+blocking details build and `TMDbHelper.IsUpdatingRatings` around the ratings thread — so the patch
+fills the gap with the skin's own `Widget_Busy_BlankItem` placeholder bar, one per rating slot the
+user has configured, faded in after 400ms so a single step of the cursor never flashes it. It shows
+only when the row is genuinely empty: the monitor overwrites properties rather than clearing them,
+so a value on screen mid-fetch is the previous item's, and a placeholder beside it would be a second
+answer to the same question.
 
 Patch 002 exists because `resource.font.robotocjksc`'s `Inter-Unicode` fonts have no glyph for
 U+05DA ך, U+05DD ם or U+05E5 ץ, so every Hebrew word ending in kaf, mem or tsadi loses its last

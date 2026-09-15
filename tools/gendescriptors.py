@@ -21,6 +21,7 @@ FONT_ADDON = "resource.font.af3hebrew"
 INFO = "1080i/Includes_Info.xml"
 SKINSET = "1080i/Includes_SkinSettings.xml"
 FONTXML = "1080i/Font.xml"
+EXPRXML = "1080i/Includes_Expressions.xml"
 
 IMAGE_ANCHOR = '<control type="image">\n                    <height>info_title_logo_h</height>'
 
@@ -131,6 +132,131 @@ def genre_edits():
     yield INFO, "insert", GENRE_ANCHOR, GENRE_BLOCK
     yield INFO, "replace", MPAA_FIND, MPAA_WITH
     yield SKINSET, "insert", GENRE_TOGGLE_ANCHOR, GENRE_TOGGLE
+
+
+SKELETON_SETTING = "InfoTags.DisableMetaSkeleton"   # absent: placeholder. present: nothing.
+
+# TMDb Helper already says when it is working: lib/monitor/listitemtools.py sets
+# IsUpdating around the blocking details build ("Set a property for skins to check
+# if item details are updating") and lib/monitor/listitemfinaliser.py sets
+# IsUpdatingRatings around the ratings thread, both under
+# jurialmunkey.window.WindowPropertySetter.get_property's prefix="TMDbHelper".
+# Comparing base_tmdb_id against ListItem.UniqueID(tmdb) would not do: the images
+# monitor copies base_* straight off the focused listitem each poll, so it follows
+# the cursor, not the fetch, and matches again long before the ratings land.
+SKELETON_EXPR_ANCHOR = (
+    '    <expression name="Exp_TMDbHelper_IsCrop">'
+    '[Skin.HasSetting(TMDbHelper.EnableCrop)]</expression>\n')
+
+SKELETON_EXPR = SKELETON_EXPR_ANCHOR + (
+    '    <expression name="Exp_TMDbHelper_IsSkeleton">[$EXP[Exp_TMDbHelper_IsData] + '
+    '!Skin.HasSetting(%s) + '
+    '[!String.IsEmpty(Window(Home).Property(TMDbHelper.IsUpdating)) | '
+    '!String.IsEmpty(Window(Home).Property(TMDbHelper.IsUpdatingRatings))]]</expression>\n'
+    % SKELETON_SETTING)
+
+# Everything the TMDbHelper-fed half of the meta row can draw. All of it empty is
+# the only state the placeholder stands in for: the monitor overwrites properties
+# rather than clearing them first, so when a value is on screen during a fetch it
+# is the previous item's, and a placeholder beside it would be a second answer to
+# the same question.
+SKELETON_PROPS = (
+    "MetaCritic_Rating", "RottenTomatoes_UserMeter", "RottenTomatoes_Rating", "Trakt_Rating",
+    "IMDb_Rating", "TMDb_Rating", "MDBList_Rating", "Letterboxd_Rating", "MyAnimeList_Rating",
+    "Status", "Oscar_Wins",
+)
+
+SKELETON_EMPTY = " + ".join(
+    "String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].%s))" % p
+    for p in SKELETON_PROPS)
+
+SKELETON_DEF_ANCHOR = '    <include name="Info_Meta_Item_Row">'
+
+# Borrowed wholesale from the skin's own placeholder, Widget_Busy_BlankItem /
+# Widget_Busy in Includes_Widgets.xml: a 24px common/widget_text.png bar at
+# main_fg_12, faded in by a Visible animation with reversible="false" so that
+# hiding it is instant rather than a reversed fade. Only the timings differ --
+# 400ms against the widgets' 200ms, because the service polls every 200ms
+# (POLL_MIN_INCREMENT) and a cursor step that resolves inside one poll must not
+# blink. Held down the flags stay set and it simply stays up. The pulse is the
+# nearest thing Kodi has to a shimmer: no skin sweeps a gradient, because groups
+# do not clip their children.
+SKELETON_DEF = """    <include name="Info_Meta_Skeleton">
+        <param name="service">ListItem</param>
+        <param name="width">96</param>
+        <definition>
+            <control type="group" description="Placeholder held until TMDbHelper has answered for this item">
+                <width>$PARAM[width]</width>
+                <height>40</height>
+                <visible>$PARAM[visible]</visible>
+                <visible>$EXP[Exp_TMDbHelper_IsSkeleton]</visible>
+                <visible>%s</visible>
+                <animation type="Visible" reversible="false">
+                    <effect type="fade" start="0" end="100" time="200" delay="400" />
+                </animation>
+                <control type="image">
+                    <top>8</top>
+                    <bottom>8</bottom>
+                    <texture colordiffuse="main_fg_12" border="12">common/widget_text.png</texture>
+                    <animation type="Conditional" condition="true" reversible="false" loop="true">
+                        <effect type="fade" start="100" end="45" time="900" pulse="true" reversible="false" />
+                    </animation>
+                </control>
+            </control>
+        </definition>
+    </include>
+
+""" % SKELETON_EMPTY + SKELETON_DEF_ANCHOR
+
+SKELETON_ROW_ANCHOR = "                    <!-- Ratings -->"
+
+_SKELETON_ITEM = """                    <include content="Info_Meta_Skeleton" condition="$EXP[Exp_TMDbHelper_IsData]">
+                        <param name="visible">[%s] + !String.IsEmpty(Skin.String(CustomRating.%s.Item%02d))</param>
+                        <param name="service">$PARAM[service]</param>
+                    </include>
+"""
+
+# One pill per rating slot the user has actually configured, mirroring the six
+# Info_Meta_Ratings instances it sits above, so the placeholder is the shape of
+# what is coming rather than a guess.
+_SKELETON_DBTYPES = (
+    ("Movies", "String.IsEqual($PARAM[container]$PARAM[listitem].DBType,movie) | $PARAM[override_movie]"),
+    ("TVShows", "String.IsEqual($PARAM[container]$PARAM[listitem].DBType,tvshow) | "
+                "String.IsEqual($PARAM[container]$PARAM[listitem].DBType,season) | $PARAM[override_tvshow]"),
+)
+
+SKELETON_ROW = ("                    <!-- Ratings Placeholder -->\n"
+                + "".join(_SKELETON_ITEM % (cond, content, n)
+                          for content, cond in _SKELETON_DBTYPES for n in (1, 2, 3))
+                + "\n" + SKELETON_ROW_ANCHOR)
+
+SKELETON_TOGGLE_ANCHOR = (
+    "            <onclick>SetProperty(CustomDialogSettingsItems,"
+    "DialogCustom_Ratings_TVShows_Items,Home)</onclick>\n"
+    "            <onclick>ActivateWindow(1118)</onclick>\n"
+    "            <visible>$EXP[Exp_TMDbHelper_IsData]</visible>\n"
+    "        </include>\n")
+
+SKELETON_TOGGLE = SKELETON_TOGGLE_ANCHOR + """
+        <include content="Settings_Button" description="Ratings loading placeholder">
+            <param name="dialog">false</param>
+            <param name="window">skinsettings</param>
+            <param name="baseid">$PARAM[baseid]</param>
+            <param name="id">902</param>
+            <param name="control">radiobutton</param>
+            <label>Loading placeholder</label>
+            <onclick>Skin.ToggleSetting(%s)</onclick>
+            <selected>!Skin.HasSetting(%s)</selected>
+            <visible>$EXP[Exp_TMDbHelper_IsData]</visible>
+        </include>
+""" % (SKELETON_SETTING, SKELETON_SETTING)
+
+
+def skeleton_edits():
+    yield EXPRXML, "insert", SKELETON_EXPR_ANCHOR, SKELETON_EXPR
+    yield INFO, "insert", SKELETON_DEF_ANCHOR, SKELETON_DEF
+    yield INFO, "insert", SKELETON_ROW_ANCHOR, SKELETON_ROW
+    yield SKINSET, "insert", SKELETON_TOGGLE_ANCHOR, SKELETON_TOGGLE
 
 
 def font_edits():
@@ -283,6 +409,9 @@ TARGETS = {
          [[FONTXML, FONT_ADDON], ["addon.xml", FONT_ADDON]], font_edits),
         ("003-genre.json", "genre-in-infoline", "feature request to be offered",
          [[INFO, "<!-- Genre -->"], [INFO, GENRE_SETTING], [SKINSET, GENRE_SETTING]], genre_edits),
+        ("004-meta-skeleton.json", "meta-skeleton", "feature request to be offered",
+         [[EXPRXML, "Exp_TMDbHelper_IsSkeleton"], [INFO, "Info_Meta_Skeleton"],
+          [SKINSET, SKELETON_SETTING]], skeleton_edits),
     ),
     SCRAPER: (
         ("001-english-title.json", "english-title", "PR to be offered to xbmc",
