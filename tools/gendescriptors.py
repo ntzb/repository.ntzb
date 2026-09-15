@@ -267,55 +267,33 @@ def font_edits():
         '        <import addon="%s" version="1.1.0" />\n    </requires>' % FONT_ADDON
 
 
-HELPER_ITEMMETA = "resources/tmdbhelper/lib/items/database/itemmeta_factories/concrete_classes/baseclass.py"
-HELPER_BASEMEDIA = "resources/tmdbhelper/lib/items/database/itemmeta_factories/concrete_classes/basemedia.py"
-HELPER_BASEITEM = "resources/tmdbhelper/lib/items/database/baseitem_factories/concrete_classes/baseclass.py"
 HELPER_TMDBAPI = "resources/tmdbhelper/lib/api/tmdb/api.py"
+HELPER_BASEITEM = "resources/tmdbhelper/lib/items/database/baseitem_factories/concrete_classes/baseclass.py"
+HELPER_MAPPINGS = "resources/tmdbhelper/lib/items/database/mappings.py"
+HELPER_LISTITEM = "resources/tmdbhelper/lib/items/listitem.py"
+HELPER_GENRES = "resources/tmdbhelper/lib/query/database/genres.py"
 
-SPECIAL_ANCHOR = """    def get_infolabels_special(self, infolabels):
-        return infolabels
+# TMDb localises the item itself -- title, plot, poster_path, cast and crew names,
+# studios, genres -- from the language query parameter, and the add-on derives that
+# parameter, the artwork and video language preferences, and the art tables' language
+# lookup from this one property. Pinning it to English is the whole of "everything in
+# English": nothing downstream has to be patched back. iso_country is left alone, so
+# self.language keeps meaning he-IL and region still selects Israeli certifications
+# and Israeli watch providers.
+ISO_LANGUAGE_FIND = """    @property
+    def iso_language(self):
+        return self.language[:2]
 """
 
-# TMDb leaves the English translation's title blank when the title is already
-# English and fills it in when it is not, so between that translation and the
-# original title there is an English title for everything TMDb has one for.
-ROUTE_ATTR_ANCHOR = """    infoproperties_dbclist_routes = ()
+ISO_LANGUAGE_WITH = """    @property
+    def iso_language(self):
+        return 'en'
 """
 
-ROUTE_ATTR_WITH = ROUTE_ATTR_ANCHOR + """    english_title_route = None
-"""
 
-ENGLISH_TITLE_METHOD = """    def get_infolabels_english_title(self, infolabels):
-        if not self.english_title_route:
-            return infolabels
-        instance = self.return_basemeta_db(*self.english_title_route)
-        title = self.get_instance_cached_data_value(instance, 'title') or self.get_data_value('originaltitle')
-        if title:
-            infolabels['title'] = title
-        return infolabels
+def helper_english_metadata_edits():
+    yield HELPER_TMDBAPI, "replace", ISO_LANGUAGE_FIND, ISO_LANGUAGE_WITH
 
-""" + SPECIAL_ANCHOR
-
-INFOLABELS_ANCHOR = """        infolabels = self.get_infolabels_special(infolabels)
-        return infolabels
-"""
-
-INFOLABELS_WITH = """        infolabels = self.get_infolabels_special(infolabels)
-        infolabels = self.get_infolabels_english_title(infolabels)
-        return infolabels
-"""
-
-MEDIAITEM_ANCHOR = """    infolabels_dbclist_routes = (
-        MediaItemInfoLabelItemRoutes.genre,
-        MediaItemInfoLabelItemRoutes.country,
-        MediaItemInfoLabelItemRoutes.director,
-        MediaItemInfoLabelItemRoutes.writer,
-    )
-"""
-
-MEDIAITEM_WITH = """    english_title_route = ('english_translation', None)
-
-""" + MEDIAITEM_ANCHOR
 
 IS_TRANSLATION_FIND = """    @property
     def is_translation(self):
@@ -333,35 +311,73 @@ IS_TRANSLATION_WITH = """    @property
         return True
 """
 
+# get_info() runs once per item, on a cache miss, on the response that
+# append_to_response has already carried the translations in -- so the plot is
+# swapped before the row is written and every later read is free. item['item'] is
+# the media row and item['translation'] the rows the same response produced; a type
+# without a plot column drops the key when the row is assembled.
+GET_INFO_ANCHOR = """    def get_info(self, data, **kwargs):
+        self.data = data
+        self.item = self.get_empty_item()
+        self.item = self.map_item(self.item, data)
+        self.item = self.map_dict(self.item, data)
+"""
 
-def helper_english_title_edits():
-    # A list already makes one details call per uncached item, and 'translations'
-    # rides along on it through append_to_response, so the English title costs a
-    # bigger response rather than another request. Unconditional rather than behind
-    # the existing plot-fallback setting: rows already cached without translations
-    # then fail the baseitem.translation cache condition and are refetched.
+GET_INFO_WITH = """    def set_translated_plot(self, item):
+        iso_language = self.language[:2]
+        for i in item['translation']:
+            if i['iso_language'] != iso_language:
+                continue
+            if i['plot']:
+                item['item']['plot'] = i['plot']
+            break
+        return item
+
+""" + GET_INFO_ANCHOR + """        self.item = self.set_translated_plot(self.item)
+"""
+
+# merge_two_dicts(details, self) keeps self, so the plot mapped straight off the
+# list response outranks the one the details cache just translated. Title and
+# tvshowtitle are already exempted here for the same reason; plot joins them.
+PLOT_OVERRIDE_ANCHOR = (
+    "        self.infolabels['tvshowtitle'] = details.get('infolabels', {})"
+    ".get('tvshowtitle') or self.infolabels.get('tvshowtitle')\n")
+
+PLOT_OVERRIDE_WITH = PLOT_OVERRIDE_ANCHOR + (
+    "        self.infolabels['plot'] = details.get('infolabels', {})"
+    ".get('plot') or self.infolabels.get('plot')\n")
+
+
+def helper_translated_plot_edits():
+    # 'translations' rides along on the details call every uncached item already
+    # makes, so the Hebrew plot costs a bigger response rather than another request.
+    # Unconditional rather than behind the existing plot-fallback setting: rows
+    # already cached without them then fail the baseitem.translation cache condition
+    # and are refetched once.
     yield HELPER_BASEITEM, "replace", IS_TRANSLATION_FIND, IS_TRANSLATION_WITH
-    yield HELPER_ITEMMETA, "insert", ROUTE_ATTR_ANCHOR, ROUTE_ATTR_WITH
-    yield HELPER_ITEMMETA, "insert", SPECIAL_ANCHOR, ENGLISH_TITLE_METHOD
-    yield HELPER_ITEMMETA, "replace", INFOLABELS_ANCHOR, INFOLABELS_WITH
-    yield HELPER_BASEMEDIA, "insert", MEDIAITEM_ANCHOR, MEDIAITEM_WITH
+    yield HELPER_MAPPINGS, "insert", GET_INFO_ANCHOR, GET_INFO_WITH
+    yield HELPER_LISTITEM, "insert", PLOT_OVERRIDE_ANCHOR, PLOT_OVERRIDE_WITH
 
 
-IMAGE_LANGUAGE_FIND = """    def include_image_language(self):
-        return f'{self.iso_language},null,en'
+# Genre names never come from the item: both the list mapper's genre_ids and the
+# details mapper's genres array are reduced to ids and looked up in one id->name map
+# that this function fills and the genres table caches for thirty days. So asking for
+# that map in the add-on's own language -- the only request that still does -- is the
+# whole of "genres in Hebrew", for two requests a month and no per-item cost.
+# configure_request_kwargs() overwrites language unconditionally, hence building the
+# url the way get_response_json does rather than passing a keyword it would discard.
+GENRES_FIND = """        def get_genres(tmdb_type):
+            genres = self.tmdb_api.get_response_json('genre', tmdb_type, 'list') or {}
 """
 
-IMAGE_LANGUAGE_WITH = """    def include_image_language(self):
-        return 'en,null'
+GENRES_WITH = """        def get_genres(tmdb_type):
+            requrl = self.tmdb_api.get_request_url('genre', tmdb_type, 'list', language=self.tmdb_api.language)
+            genres = self.tmdb_api.get_api_request_json(requrl) or {}
 """
 
 
-def helper_english_artwork_edits():
-    # Artwork preference is hardcoded language -> english -> null, so the only way
-    # to demote Hebrew posters and logos is to stop asking TMDb for them. Video
-    # language is left alone: a trailer is not text.
-    yield HELPER_TMDBAPI, "replace", IMAGE_LANGUAGE_FIND, IMAGE_LANGUAGE_WITH
-
+def helper_translated_genres_edits():
+    yield HELPER_GENRES, "replace", GENRES_FIND, GENRES_WITH
 
 
 def build(tree, pid, upstream, absent, gen):
@@ -418,11 +434,14 @@ TARGETS = {
          [[TMDB, "movie_fallback.get('title')"], [TMDB, "self.urls, 'en')"]], english_title_edits),
     ),
     HELPER: (
-        ("001-english-title.json", "english-title", "PR to be offered to jurialmunkey",
-         [[HELPER_ITEMMETA, "get_infolabels_english_title"], [HELPER_BASEMEDIA, "english_title_route"]],
-         helper_english_title_edits),
-        ("002-english-artwork.json", "english-artwork", "jurialmunkey/plugin.video.themoviedb.helper#1181",
-         [[HELPER_TMDBAPI, "return 'en,null'"]], helper_english_artwork_edits),
+        ("001-english-metadata.json", "english-metadata",
+         "jurialmunkey/plugin.video.themoviedb.helper#707, #1181",
+         [[HELPER_TMDBAPI, "        return 'en'"]], helper_english_metadata_edits),
+        ("002-translated-plot.json", "translated-plot", "PR to be offered to jurialmunkey",
+         [[HELPER_MAPPINGS, "set_translated_plot"], [HELPER_LISTITEM, "self.infolabels['plot'] = details"]],
+         helper_translated_plot_edits),
+        ("003-translated-genres.json", "translated-genres", "PR to be offered to jurialmunkey",
+         [[HELPER_GENRES, "get_request_url"]], helper_translated_genres_edits),
     ),
 }
 

@@ -60,46 +60,84 @@ record, so they survive.
 
 | # | change | upstream |
 |---|--------|----------|
-| 001 | the English title, whatever language the plot is in | PR to be offered |
-| 002 | artwork chosen in English or textless, never in the interface language | [#1181](https://github.com/jurialmunkey/plugin.video.themoviedb.helper/issues/1181) |
+| 001 | every TMDb request made in English, whatever the add-on's language is set to | [#707](https://github.com/jurialmunkey/plugin.video.themoviedb.helper/issues/707), [#1181](https://github.com/jurialmunkey/plugin.video.themoviedb.helper/issues/1181) |
+| 002 | the plot in the add-on's language, from the translations the details call already carries | PR to be offered |
+| 003 | genre names in the add-on's language | PR to be offered |
 
-TMDb Helper has one language setting and it drives everything: with it set to Hebrew the titles,
-the plots and the posters all come back Hebrew, and nothing in the add-on, the skin or Kodi splits
-them apart. [#707](https://github.com/jurialmunkey/plugin.video.themoviedb.helper/issues/707) asked
-for exactly this and was closed as impossible — *"TMDB api does not have the the option to specify
-a fallback language ... otherwise it would double the item details lookup time"*.
+**Set the add-on's language to Hebrew and leave it there.** It no longer means "scrape in
+Hebrew"; it means *the plot and the genres in Hebrew, and the region Israeli*. Everything
+else — titles, posters, cast, crew, studios, related titles — comes back English.
 
-It does not have to. The add-on already knows how to ask for `translations` alongside the item
-details it fetches for every uncached list item, because that is how its English plot fallback
-works. Riding along on that same call, the English title is free:
+TMDb has one language parameter and it drives everything: titles, plots, `poster_path`,
+cast and crew names, studios and genre names all come back in it, and
+[#707](https://github.com/jurialmunkey/plugin.video.themoviedb.helper/issues/707) asked for
+a split and was closed as impossible. An earlier version of this fork asked TMDb in Hebrew
+and patched fields back to English one at a time; that lost, because `poster_path` on the
+item is localised too and `include_image_language` only filters the separate `images`
+array, so lists and *related movies* kept their Hebrew posters however many fields were
+patched.
 
-```diff
-+        title = self.get_instance_cached_data_value(instance, 'title') or self.get_data_value('originaltitle')
-```
-
-TMDb leaves the English translation's title blank when a title is already English and fills it in
-when it is not, so between that translation and `original_title` there is an English title for
-everything TMDb has one for — `Parasite` for `פרזיטים`, `The Goonies` for `הגוניס`. Titles only for
-movies, tv shows, seasons and episodes; people and collections are left alone.
-
-The cost is a larger response, not another request: `translations` adds about 30 KB to a roughly
-200 KB item lookup, and those rows land in the add-on's own cache database. `translations` is
-fetched unconditionally rather than behind the existing plot-fallback setting, so that items
-already cached without them fail the cache condition and are refetched once.
-
-Artwork preference is hardcoded language, then English, then textless, and jurialmunkey has said
-that is deliberate, so the only lever left is to stop asking TMDb for Hebrew images at all:
+So it is inverted. Every request goes out in English, and the two things the user wants in
+Hebrew are put back from data the add-on is already holding. One property is the whole of
+the first half — the add-on derives the request language, the artwork and video language
+preferences and the art tables' language lookup from it:
 
 ```diff
--        return f'{self.iso_language},null,en'
-+        return 'en,null'
+     def iso_language(self):
+-        return self.language[:2]
++        return 'en'
 ```
+
+`iso_country` is deliberately left alone, so the language setting still reads `he-IL`
+everywhere else: requests go out as `en-IL`, and certifications and watch providers are
+still chosen for Israel.
+
+The plot rides along on the details call every uncached list item already makes, because
+`append_to_response=translations` is fetched unconditionally — that is how the add-on's
+English plot fallback works. Swapping it in at map time writes it straight into the cached
+row, so the per-item cost is zero on every later read:
+
+```diff
++        self.item = self.set_translated_plot(self.item)
+```
+
+One more line is needed for lists. `set_details` merges the cached details *under* the
+item mapped from the list response, so the list's own plot would outrank the translated
+one; title and tvshowtitle are already exempted there, and plot joins them.
+
+Genres are not in the translations payload, and they are not taken from the item either:
+both the list mapper's `genre_ids` and the details mapper's `genres` array are reduced to
+ids and looked up in a single id→name map, which the add-on fetches from
+`/genre/movie/list` and `/genre/tv/list` and caches in its `genres` table for thirty days.
+Asking for *that* map in the add-on's own language is the whole of "genres in Hebrew" —
+two requests a month, nothing per item:
+
+```diff
+-            genres = self.tmdb_api.get_response_json('genre', tmdb_type, 'list') or {}
++            requrl = self.tmdb_api.get_request_url('genre', tmdb_type, 'list', language=self.tmdb_api.language)
++            genres = self.tmdb_api.get_api_request_json(requrl) or {}
+```
+
+The url is built the way `get_response_json` builds it because
+`configure_request_kwargs` overwrites `language` unconditionally and would discard a
+keyword.
+
+No extra request per item, in any of the three. The response for a list item — the
+`basic` cache level — is within half a percent of what it was. A details lookup grows
+3–17% (11–36 KB on a 200–400 KB response), and all of it is the `reviews` block: TMDb has
+no Hebrew reviews and returns English ones, so it is content arriving rather than waste.
 
 It is published under the **stock add-on id**, unlike the scraper. Arctic Fuse 3 imports
-`plugin.video.themoviedb.helper` by name in a non-optional `<requires>`, the add-on's Trakt token
-lives in its own settings, and it runs a background service that owns the `TMDbHelper.*` window
-properties — so a renamed fork would need the skin rewritten around it, would cost the user their
-Trakt login, and would have two services fighting over the same properties.
+`plugin.video.themoviedb.helper` by name in a non-optional `<requires>`, the add-on's
+Trakt token lives in its own settings, and it runs a background service that owns the
+`TMDbHelper.*` window properties — so a renamed fork would need the skin rewritten around
+it, would cost the user their Trakt login, and would have two services fighting over the
+same properties.
+
+Cached rows carry the language they were fetched under, and that is still `he-IL`, so the
+add-on cannot tell the old Hebrew rows from the new English ones. **Delete
+`addon_data/plugin.video.themoviedb.helper/database_07/` after updating** — otherwise
+everything already cached stays Hebrew for up to thirty days.
 
 **Upstreaming is the plan of record.** When a patch is merged upstream it is deleted here, not
 maintained.

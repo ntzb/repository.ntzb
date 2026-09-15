@@ -1,0 +1,46 @@
+{
+  "id": "translated-plot",
+  "upstream": "PR to be offered to jurialmunkey",
+  "absent": [
+    [
+      "resources/tmdbhelper/lib/items/database/mappings.py",
+      "set_translated_plot"
+    ],
+    [
+      "resources/tmdbhelper/lib/items/listitem.py",
+      "self.infolabels['plot'] = details"
+    ]
+  ],
+  "edits": [
+    {
+      "file": "resources/tmdbhelper/lib/items/database/baseitem_factories/concrete_classes/baseclass.py",
+      "kind": "replace",
+      "count": 1,
+      "contexts": [
+        "99a955083770a0891e6cf37fbfcc81e6e0b02b3833ec8d2ef61466cb2d15f1aa"
+      ],
+      "find": "    @property\n    def is_translation(self):\n        if self.cache_refresh == 'force':\n            return True\n        if self.cache_translations:\n            return True\n        if get_setting('force_english_plot_fallback'):\n            return True\n        return False\n",
+      "with": "    @property\n    def is_translation(self):\n        return True\n"
+    },
+    {
+      "file": "resources/tmdbhelper/lib/items/database/mappings.py",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "b531c960aef273a5ec94033d739d944243da5b2e1a07d94e6053fabf771e4e95"
+      ],
+      "find": "    def get_info(self, data, **kwargs):\n        self.data = data\n        self.item = self.get_empty_item()\n        self.item = self.map_item(self.item, data)\n        self.item = self.map_dict(self.item, data)\n",
+      "with": "    def set_translated_plot(self, item):\n        iso_language = self.language[:2]\n        for i in item['translation']:\n            if i['iso_language'] != iso_language:\n                continue\n            if i['plot']:\n                item['item']['plot'] = i['plot']\n            break\n        return item\n\n    def get_info(self, data, **kwargs):\n        self.data = data\n        self.item = self.get_empty_item()\n        self.item = self.map_item(self.item, data)\n        self.item = self.map_dict(self.item, data)\n        self.item = self.set_translated_plot(self.item)\n"
+    },
+    {
+      "file": "resources/tmdbhelper/lib/items/listitem.py",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "18d5d13a476cebf319eaefac53ca22204446f55384af6ee5a6d5b382aef88e9d"
+      ],
+      "find": "        self.infolabels['tvshowtitle'] = details.get('infolabels', {}).get('tvshowtitle') or self.infolabels.get('tvshowtitle')\n",
+      "with": "        self.infolabels['tvshowtitle'] = details.get('infolabels', {}).get('tvshowtitle') or self.infolabels.get('tvshowtitle')\n        self.infolabels['plot'] = details.get('infolabels', {}).get('plot') or self.infolabels.get('plot')\n"
+    }
+  ]
+}

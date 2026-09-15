@@ -1,0 +1,22 @@
+{
+  "id": "english-metadata",
+  "upstream": "jurialmunkey/plugin.video.themoviedb.helper#707, #1181",
+  "absent": [
+    [
+      "resources/tmdbhelper/lib/api/tmdb/api.py",
+      "        return 'en'"
+    ]
+  ],
+  "edits": [
+    {
+      "file": "resources/tmdbhelper/lib/api/tmdb/api.py",
+      "kind": "replace",
+      "count": 1,
+      "contexts": [
+        "02ce49e09de9b3e168a7946d65dad84bf048e6ff9362a8c61321bfa90ba34f13"
+      ],
+      "find": "    @property\n    def iso_language(self):\n        return self.language[:2]\n",
+      "with": "    @property\n    def iso_language(self):\n        return 'en'\n"
+    }
+  ]
+}
