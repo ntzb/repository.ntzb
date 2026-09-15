@@ -1,8 +1,9 @@
-"""Rebuild the patched skin from upstream's released zip and stage a repository index.
+"""Rebuild the patched add-ons from their upstream released zips and stage a repository index.
 
 Fails closed: if any gate rejects, nothing is written to dist/ and the previously
 published version keeps serving.
 """
+import gzip
 import hashlib
 import os
 import shutil
@@ -16,8 +17,18 @@ import patchlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UPSTREAM = "https://raw.githubusercontent.com/jurialmunkey/repository.jurialmunkey/master/omega/zips"
+KODI = "https://mirrors.kodi.tv/addons/omega"
 SKIN = "skin.arctic.fuse.3"
+FONT = "resource.font.af3hebrew"
+REPO = "repository.ntzb"
+STOCK = "metadata.themoviedb.org.python"
+STOCK_NAME = "The Movie Database Python"
+SCRAPER = STOCK + ".ntzb"
+SCRAPER_NAME = "The Movie Database Python (ntzb)"
 BUILD_N = 5
+SCRAPER_BUILD_N = 1
+FONT_VERSION = "1.1.0"
+REPO_VERSION = "1.0.0"
 
 def log(msg):
     print(msg, flush=True)
@@ -26,12 +37,58 @@ def fetch(url):
     with urllib.request.urlopen(url, timeout=120) as r:
         return r.read()
 
-def upstream_version():
-    root = ET.fromstring(fetch(UPSTREAM + "/addons.xml").decode("utf-8"))
-    for a in root.findall("addon"):
-        if a.get("id") == SKIN:
+def index_version(blob, addon_id, where):
+    for a in ET.fromstring(blob.decode("utf-8")).findall("addon"):
+        if a.get("id") == addon_id:
             return a.get("version")
-    raise SystemExit("%s not found in upstream addons.xml" % SKIN)
+    raise SystemExit("%s not found in %s" % (addon_id, where))
+
+
+def upstream_version():
+    return index_version(fetch(UPSTREAM + "/addons.xml"), SKIN, "jurialmunkey addons.xml")
+
+
+def kodi_version(addon_id):
+    """The version Kodi's own repository advertises -- the released artifact, not git."""
+    return index_version(gzip.decompress(fetch(KODI + "/addons.xml.gz")), addon_id,
+                         "kodi addons.xml.gz")
+
+
+def rename_addon(tree):
+    """Re-id the forked scraper so it coexists with the stock one instead of
+    colliding with it. Counted like a patch: a silent miss here would publish an
+    add-on that claims to be the official scraper."""
+    for rel, find, with_ in (
+            ("addon.xml", 'id="%s"' % STOCK, 'id="%s"' % SCRAPER),
+            ("addon.xml", 'name="%s"' % STOCK_NAME, 'name="%s"' % SCRAPER_NAME),
+            ("resources/settings.xml",
+             '<section id="%s">' % STOCK, '<section id="%s">' % SCRAPER)):
+        path = os.path.join(tree, rel)
+        with open(path, "rb") as fh:
+            buf = fh.read()
+        f = find.encode("utf-8")
+        if buf.count(f) != 1:
+            raise SystemExit("%s: %r expected 1, found %d" % (rel, find, buf.count(f)))
+        with open(path, "wb") as fh:
+            fh.write(buf.replace(f, with_.encode("utf-8")))
+
+
+def patch(tree, addon_id):
+    d = os.path.join(ROOT, "patches", addon_id)
+    for name in sorted(os.listdir(d)):
+        desc = patchlib.load(os.path.join(d, name))
+        touched = patchlib.apply(tree, desc)
+        log("applied %-22s -> %s" % (desc["id"], ", ".join(touched)))
+
+
+def unpack(url, work, name):
+    log("fetching %s" % url)
+    zpath = os.path.join(work, name + ".zip")
+    with open(zpath, "wb") as fh:
+        fh.write(fetch(url))
+    with zipfile.ZipFile(zpath) as z:
+        z.extractall(work)
+    return os.path.join(work, name)
 
 def set_addon_version(tree, version):
     p = os.path.join(tree, "addon.xml")
@@ -67,9 +124,9 @@ def stage(dist, addon_id, version, tree, src_assets):
             shutil.copy2(s, os.path.join(out, name))
     return out
 
-def already_published(version):
+def already_published(addon_id, version):
     url = ("https://github.com/ntzb/repository.ntzb/releases/download/%s/%s-%s.zip"
-           % (SKIN, SKIN, version))
+           % (addon_id, addon_id, version))
     req = urllib.request.Request(url, method="HEAD")
     try:
         with urllib.request.urlopen(req, timeout=60):
@@ -93,41 +150,39 @@ def main():
 
     up = upstream_version()
     ours = "%s+ntzb%d" % (up, BUILD_N)
-    emit(upstream=up, version=ours)
+    sup = kodi_version(STOCK)
+    sours = "%s+ntzb%d" % (sup, SCRAPER_BUILD_N)
+    emit(upstream=up, version=ours, scraper_upstream=sup, scraper_version=sours)
     log("upstream %s -> publishing %s" % (up, ours))
+    log("upstream %s -> publishing %s" % (sup, sours))
 
-    if already_published(ours) and os.environ.get("FORCE") != "true":
-        log("%s already published, nothing to do" % ours)
+    font_src = os.path.join(ROOT, "payload", FONT)
+    repo_src = os.path.join(ROOT, "repo", REPO)
+    wanted = ((SKIN, ours), (FONT, FONT_VERSION), (REPO, REPO_VERSION), (SCRAPER, sours))
+
+    # All or nothing, as before: payload edited without a version bump only reaches
+    # users on the next publish, so one missing artifact republishes them all.
+    if os.environ.get("FORCE") != "true" and all(already_published(a, v) for a, v in wanted):
+        log("%s and %s already published, nothing to do" % (ours, sours))
         emit(published="skip")
         return
 
-    zpath = os.path.join(work, "upstream.zip")
-    url = "%s/%s/%s-%s.zip" % (UPSTREAM, SKIN, SKIN, up)
-    log("fetching %s" % url)
-    with open(zpath, "wb") as fh:
-        fh.write(fetch(url))
-    with zipfile.ZipFile(zpath) as z:
-        z.extractall(work)
-    tree = os.path.join(work, SKIN)
-
-    for name in sorted(os.listdir(os.path.join(ROOT, "patches"))):
-        desc = patchlib.load(os.path.join(ROOT, "patches", name))
-        touched = patchlib.apply(tree, desc)
-        log("applied %-22s -> %s" % (desc["id"], ", ".join(touched)))
-
+    tree = unpack("%s/%s/%s-%s.zip" % (UPSTREAM, SKIN, SKIN, up), work, SKIN)
+    patch(tree, SKIN)
     set_addon_version(tree, ours)
+
+    stree = unpack("%s/%s/%s-%s.zip" % (KODI, STOCK, STOCK, sup), work, STOCK)
+    patch(stree, SCRAPER)
+    rename_addon(stree)
+    set_addon_version(stree, sours)
+
     stage(dist, SKIN, ours, tree, tree)
-    stage(dist, "resource.font.af3hebrew", "1.1.0",
-          os.path.join(ROOT, "payload", "resource.font.af3hebrew"),
-          os.path.join(ROOT, "payload", "resource.font.af3hebrew"))
-    stage(dist, "repository.ntzb", "1.0.0",
-          os.path.join(ROOT, "repo", "repository.ntzb"),
-          os.path.join(ROOT, "repo", "repository.ntzb"))
+    stage(dist, FONT, FONT_VERSION, font_src, font_src)
+    stage(dist, REPO, REPO_VERSION, repo_src, repo_src)
+    stage(dist, SCRAPER, sours, stree, os.path.join(stree, "resources"))
 
     index = [b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>', b"<addons>"]
-    for aid, src in ((SKIN, tree),
-                     ("resource.font.af3hebrew", os.path.join(ROOT, "payload", "resource.font.af3hebrew")),
-                     ("repository.ntzb", os.path.join(ROOT, "repo", "repository.ntzb"))):
+    for src in (tree, font_src, repo_src, stree):
         with open(os.path.join(src, "addon.xml"), "rb") as fh:
             body = fh.read()
         index.append(body[body.index(b"<addon "):].rstrip())
@@ -139,7 +194,7 @@ def main():
         fh.write(hashlib.sha256(blob).hexdigest().encode())
 
     emit(published="yes")
-    log("staged dist/ for %s" % ours)
+    log("staged dist/ for %s and %s" % (ours, sours))
 
 if __name__ == "__main__":
     main()

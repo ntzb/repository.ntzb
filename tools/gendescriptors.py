@@ -1,4 +1,6 @@
-"""Emit patches/*.json from an extracted pristine skin tree.
+"""Emit patches/<addon id>/*.json from an extracted pristine add-on tree.
+
+Usage: gendescriptors.py <addon id> <extracted tree> <patches dir>
 
 Counts and context hashes are measured, never hand-written: the one hand-typed
 count in an earlier draft was wrong, and it was the only number in the design.
@@ -9,6 +11,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import patchlib
+
+SKIN = "skin.arctic.fuse.3"
+SCRAPER = "metadata.themoviedb.org.python.ntzb"
 
 SETTING = "View.DisableClearlogoTitle"
 FONT_ADDON = "resource.font.af3hebrew"
@@ -152,23 +157,45 @@ def build(tree, pid, upstream, absent, gen):
     return {"id": pid, "upstream": upstream, "absent": absent, "edits": edits}
 
 
-def main(tree, outdir):
-    print("001-text-title:")
-    one = build(tree, "text-title", "PR to be offered to jurialmunkey",
-                [[INFO, SETTING], [SKINSET, SETTING]], title_edits)
-    print("002-font:")
-    two = build(tree, "font", "jurialmunkey/resource.font.robotocjksc#3",
-                [[FONTXML, FONT_ADDON], ["addon.xml", FONT_ADDON]], font_edits)
-    print("003-genre:")
-    three = build(tree, "genre-in-infoline", "feature request to be offered",
-                  [[INFO, "<!-- Genre -->"], [INFO, GENRE_SETTING], [SKINSET, GENRE_SETTING]],
-                  genre_edits)
-    for name, desc in (("001-text-title.json", one), ("002-font.json", two),
-                       ("003-genre.json", three)):
+TMDB = "python/lib/tmdbscraper/tmdb.py"
+
+TITLE_FIND = "            'title': movie['title'],"
+TITLE_WITH = "            'title': movie_fallback.get('title') or movie['title'],"
+
+
+def english_title_edits():
+    # _gather_details() already fetches the untranslated movie unconditionally, for
+    # its artwork and as the plot fallback, so preferring its title costs no extra
+    # request: with the scraper set to he-IL this gives English titles, Hebrew plots.
+    yield TMDB, "replace", TITLE_FIND, TITLE_WITH
+
+
+TARGETS = {
+    SKIN: (
+        ("001-text-title.json", "text-title", "PR to be offered to jurialmunkey",
+         [[INFO, SETTING], [SKINSET, SETTING]], title_edits),
+        ("002-font.json", "font", "jurialmunkey/resource.font.robotocjksc#3",
+         [[FONTXML, FONT_ADDON], ["addon.xml", FONT_ADDON]], font_edits),
+        ("003-genre.json", "genre-in-infoline", "feature request to be offered",
+         [[INFO, "<!-- Genre -->"], [INFO, GENRE_SETTING], [SKINSET, GENRE_SETTING]], genre_edits),
+    ),
+    SCRAPER: (
+        ("001-english-title.json", "english-title", "PR to be offered to xbmc",
+         [[TMDB, "movie_fallback.get('title')"]], english_title_edits),
+    ),
+}
+
+
+def main(target, tree, patchdir):
+    outdir = os.path.join(patchdir, target)
+    os.makedirs(outdir, exist_ok=True)
+    for name, pid, upstream, absent, gen in TARGETS[target]:
+        print("%s:" % name[:-len(".json")])
+        desc = build(tree, pid, upstream, absent, gen)
         with open(os.path.join(outdir, name), "wb") as fh:
             fh.write((json.dumps(desc, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
-        print("wrote %s" % name)
+        print("wrote %s/%s" % (target, name))
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], sys.argv[3])

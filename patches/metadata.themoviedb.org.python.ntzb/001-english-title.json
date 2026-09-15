@@ -1,0 +1,22 @@
+{
+  "id": "english-title",
+  "upstream": "PR to be offered to xbmc",
+  "absent": [
+    [
+      "python/lib/tmdbscraper/tmdb.py",
+      "movie_fallback.get('title')"
+    ]
+  ],
+  "edits": [
+    {
+      "file": "python/lib/tmdbscraper/tmdb.py",
+      "kind": "replace",
+      "count": 1,
+      "contexts": [
+        "f3ef943050a357e97af095aa30807b882563ae3d547208573ca4ae7349228e06"
+      ],
+      "find": "            'title': movie['title'],",
+      "with": "            'title': movie_fallback.get('title') or movie['title'],"
+    }
+  ]
+}
