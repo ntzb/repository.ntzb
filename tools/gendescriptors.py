@@ -192,7 +192,7 @@ SKELETON_DEF = """    <include name="Info_Meta_Skeleton">
                 <visible>$EXP[Exp_TMDbHelper_IsSkeleton]</visible>
                 <visible>%s</visible>
                 <animation type="Visible" reversible="false">
-                    <effect type="fade" start="0" end="100" time="200" delay="400" />
+                    <effect type="fade" start="0" end="100" time="200" delay="1000" />
                 </animation>
                 <control type="image">
                     <top>8</top>
