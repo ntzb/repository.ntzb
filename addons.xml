@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="skin.arctic.fuse.3" name="Arctic Fuse 3" provider-name="jurialmunkey" version="3.2.19+ntzb4">
+<addon id="skin.arctic.fuse.3" name="Arctic Fuse 3" provider-name="jurialmunkey" version="3.2.19+ntzb5">
     <requires>
         <import addon="xbmc.gui" version="5.17.0" />
         <import addon="script.skinvariables" version="2.2.2" />
@@ -9,7 +9,7 @@
         <import addon="resource.images.weathericons.white" version="0.0.1" />
         <import addon="resource.images.studios.coloured" version="0.0.1" />
         <import addon="resource.font.robotocjksc" version="0.0.3" />
-        <import addon="resource.font.af3hebrew" version="1.0.0" />
+        <import addon="resource.font.af3hebrew" version="1.1.0" />
     </requires>
     <extension debugging="false" defaultthemename="Textures.xbt" effectslowdown="1" point="xbmc.gui.skin">
         <res aspect="16:9" default="true" folder="1080i" width="1920" height="1080" />
@@ -42,14 +42,14 @@
         </assets>
     </extension>
 </addon>
-<addon id="resource.font.af3hebrew" name="AF3 Hebrew Fonts" version="1.0.0" provider-name="ntzb">
+<addon id="resource.font.af3hebrew" name="AF3 Hebrew Fonts" version="1.1.0" provider-name="ntzb">
     <requires>
         <import addon="kodi.resource" version="1.0.0"/>
     </requires>
     <extension point="kodi.resource.font" compile="false" />
     <extension point="xbmc.addon.metadata">
         <summary>Inter Unicode with the missing Hebrew final forms restored</summary>
-        <description>Inter-Unicode Regular and Bold with U+05DA, U+05DD, U+05E5, U+FB47, U+200D and U+25CE restored from DejaVu Sans 2.30, the font they were originally merged from. Upstream lost them to a glyph-name collision with Inter.</description>
+        <description>Hebrew scaled to 0.84 of Latin cap height. Inter-Unicode Regular and Bold with U+05DA, U+05DD, U+05E5, U+FB47, U+200D and U+25CE restored from DejaVu Sans 2.30, the font they were originally merged from. Upstream lost them to a glyph-name collision with Inter.</description>
         <platform>all</platform>
         <license>SIL Open Font License 1.1 / Bitstream Vera</license>
         <assets><icon>icon.png</icon></assets>
