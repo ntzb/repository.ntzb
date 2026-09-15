@@ -132,7 +132,7 @@ def font_edits():
         f = "resource://resource.font.robotocjksc/Inter-Unicode-%s.ttf" % weight
         yield FONTXML, "replace", f, f.replace("resource.font.robotocjksc", FONT_ADDON)
     yield "addon.xml", "insert", "    </requires>", \
-        '        <import addon="%s" version="1.0.0" />\n    </requires>' % FONT_ADDON
+        '        <import addon="%s" version="1.1.0" />\n    </requires>' % FONT_ADDON
 
 
 def build(tree, pid, upstream, absent, gen):

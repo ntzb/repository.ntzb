@@ -41,7 +41,7 @@
         "b96a75c4a473ef8c2f53630a0b1eb977a60406f42669184c711f69db771dac44"
       ],
       "find": "    </requires>",
-      "with": "        <import addon=\"resource.font.af3hebrew\" version=\"1.0.0\" />\n    </requires>"
+      "with": "        <import addon=\"resource.font.af3hebrew\" version=\"1.1.0\" />\n    </requires>"
     }
   ]
 }

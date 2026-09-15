@@ -17,7 +17,7 @@ import patchlib
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UPSTREAM = "https://raw.githubusercontent.com/jurialmunkey/repository.jurialmunkey/master/omega/zips"
 SKIN = "skin.arctic.fuse.3"
-BUILD_N = 4
+BUILD_N = 5
 
 def log(msg):
     print(msg, flush=True)
@@ -117,7 +117,7 @@ def main():
 
     set_addon_version(tree, ours)
     stage(dist, SKIN, ours, tree, tree)
-    stage(dist, "resource.font.af3hebrew", "1.0.0",
+    stage(dist, "resource.font.af3hebrew", "1.1.0",
           os.path.join(ROOT, "payload", "resource.font.af3hebrew"),
           os.path.join(ROOT, "payload", "resource.font.af3hebrew"))
     stage(dist, "repository.ntzb", "1.0.0",

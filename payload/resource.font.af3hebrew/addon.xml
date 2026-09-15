@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="resource.font.af3hebrew" name="AF3 Hebrew Fonts" version="1.0.0" provider-name="ntzb">
+<addon id="resource.font.af3hebrew" name="AF3 Hebrew Fonts" version="1.1.0" provider-name="ntzb">
     <requires>
         <import addon="kodi.resource" version="1.0.0"/>
     </requires>
     <extension point="kodi.resource.font" compile="false" />
     <extension point="xbmc.addon.metadata">
         <summary>Inter Unicode with the missing Hebrew final forms restored</summary>
-        <description>Inter-Unicode Regular and Bold with U+05DA, U+05DD, U+05E5, U+FB47, U+200D and U+25CE restored from DejaVu Sans 2.30, the font they were originally merged from. Upstream lost them to a glyph-name collision with Inter.</description>
+        <description>Hebrew scaled to 0.84 of Latin cap height. Inter-Unicode Regular and Bold with U+05DA, U+05DD, U+05E5, U+FB47, U+200D and U+25CE restored from DejaVu Sans 2.30, the font they were originally merged from. Upstream lost them to a glyph-name collision with Inter.</description>
         <platform>all</platform>
         <license>SIL Open Font License 1.1 / Bitstream Vera</license>
         <assets><icon>icon.png</icon></assets>
