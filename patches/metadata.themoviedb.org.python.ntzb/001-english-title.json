@@ -5,6 +5,10 @@
     [
       "python/lib/tmdbscraper/tmdb.py",
       "movie_fallback.get('title')"
+    ],
+    [
+      "python/lib/tmdbscraper/tmdb.py",
+      "self.urls, 'en')"
     ]
   ],
   "edits": [
@@ -17,6 +21,16 @@
       ],
       "find": "            'title': movie['title'],",
       "with": "            'title': movie_fallback.get('title') or movie['title'],"
+    },
+    {
+      "file": "python/lib/tmdbscraper/tmdb.py",
+      "kind": "replace",
+      "count": 1,
+      "contexts": [
+        "3e12b9a7816d27ce4973b3760280ba89ee8a17cbe910e1cbc5f7f538ac13375a"
+      ],
+      "find": "        available_art = _parse_artwork(movie, collection, self.urls, self.language)",
+      "with": "        available_art = _parse_artwork(movie, collection, self.urls, 'en')"
     }
   ]
 }

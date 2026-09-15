@@ -162,12 +162,19 @@ TMDB = "python/lib/tmdbscraper/tmdb.py"
 TITLE_FIND = "            'title': movie['title'],"
 TITLE_WITH = "            'title': movie_fallback.get('title') or movie['title'],"
 
+ART_FIND = "        available_art = _parse_artwork(movie, collection, self.urls, self.language)"
+ART_WITH = "        available_art = _parse_artwork(movie, collection, self.urls, 'en')"
+
 
 def english_title_edits():
     # _gather_details() already fetches the untranslated movie unconditionally, for
     # its artwork and as the plot fallback, so preferring its title costs no extra
     # request: with the scraper set to he-IL this gives English titles, Hebrew plots.
     yield TMDB, "replace", TITLE_FIND, TITLE_WITH
+    # _build_image_list_with_fallback puts the scraper language first, so he-IL
+    # would pick Hebrew posters. Artwork is chosen in English regardless of the
+    # text language; the existing "any image" fallback still covers films with none.
+    yield TMDB, "replace", ART_FIND, ART_WITH
 
 
 TARGETS = {
@@ -181,7 +188,7 @@ TARGETS = {
     ),
     SCRAPER: (
         ("001-english-title.json", "english-title", "PR to be offered to xbmc",
-         [[TMDB, "movie_fallback.get('title')"]], english_title_edits),
+         [[TMDB, "movie_fallback.get('title')"], [TMDB, "self.urls, 'en')"]], english_title_edits),
     ),
 }
 

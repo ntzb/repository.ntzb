@@ -26,7 +26,7 @@ STOCK_NAME = "The Movie Database Python"
 SCRAPER = STOCK + ".ntzb"
 SCRAPER_NAME = "The Movie Database Python (ntzb)"
 BUILD_N = 5
-SCRAPER_BUILD_N = 1
+SCRAPER_BUILD_N = 2
 FONT_VERSION = "1.1.0"
 REPO_VERSION = "1.0.0"
 
