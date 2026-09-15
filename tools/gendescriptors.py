@@ -76,10 +76,13 @@ GENRE_ANCHOR = "                    <!-- Year -->"
 # genre is recovered by prefix-matching the joined string. Longer names first: both
 # "Action" and "Action & Adventure" would match a StartsWith on "Action".
 GENRES = (
-    "Action & Adventure", "Sci-Fi & Fantasy", "War & Politics", "Science Fiction", "TV Movie",
-    "Action", "Adventure", "Animation", "Comedy", "Crime", "Documentary", "Drama", "Family",
-    "Fantasy", "History", "Horror", "Kids", "Music", "Mystery", "News", "Reality", "Romance",
-    "Soap", "Talk", "Thriller", "War", "Western",
+    "Action & Adventure", "מדע בדיוני ופנטזיה", "Sci-Fi & Fantasy", "Science Fiction",
+    "מלחמה ופוליטיקה", "War & Politics", "אקשן והרפתקאות", "Documentary", "סרט טלויזיה",
+    "מדע בדיוני", "Adventure", "Animation", "דוקומנטרי", "TV Movie", "Thriller", "הרפתקאות",
+    "Fantasy", "History", "Mystery", "Reality", "Romance", "Western", "אנימציה", "דיבורים",
+    "הסטוריה", "מסתורין", "ריאליטי", "Action", "Comedy", "Family", "Horror", "מוסיקה", "מערבון",
+    "פנטזיה", "קומדיה", "רומנטי", "Crime", "Drama", "Music", "חדשות", "ילדים", "מותחן", "מלחמה",
+    "משפחה", "Kids", "News", "Soap", "Talk", "אימה", "אקשן", "דרמה", "סבון", "War", "פשע",
 )
 
 _GENRE_LABEL = """                    <include content="Info_Line_Label">
