@@ -503,6 +503,16 @@ GENRES_WITH = """        def get_genres(tmdb_type):
 """
 
 
+HELPER_ART_FIND = '        for artwork_type, artworks in items.items():\n            for artwork in artworks:'
+HELPER_ART_WITH = "        for artwork_type, artworks in items.items():\n            if not isinstance(artworks, list):\n                continue  # TMDb mixes a scalar 'id' in with the artwork lists\n            for artwork in artworks:"
+
+
+def helper_artwork_guard_edits():
+    # get_art() is handed TMDb's whole "images" object and iterates every value,
+    # but it carries a scalar alongside the lists. The TypeError aborts the item's
+    # whole details fetch, so ratings never arrive and the row loads forever.
+    yield HELPER_MAPPINGS, "replace", HELPER_ART_FIND, HELPER_ART_WITH
+
 def helper_translated_genres_edits():
     yield HELPER_GENRES, "replace", GENRES_FIND, GENRES_WITH
 
@@ -621,6 +631,8 @@ TARGETS = {
          helper_translated_plot_edits),
         ("003-translated-genres.json", "translated-genres", "PR to be offered to jurialmunkey",
          [[HELPER_GENRES, "get_request_url"]], helper_translated_genres_edits),
+        ("004-artwork-guard.json", "artwork-guard", "PR to be offered to jurialmunkey",
+         [[HELPER_MAPPINGS, "isinstance(artworks, list)"]], helper_artwork_guard_edits),
     ),
 }
 
