@@ -1,0 +1,22 @@
+{
+  "id": "window-id-loop",
+  "upstream": "https://github.com/jurialmunkey/script.module.jurialmunkey/issues/11",
+  "absent": [
+    [
+      "resources/modules/jurialmunkey/window.py",
+      "window = xbmcgui.getCurrentWindowId()"
+    ]
+  ],
+  "edits": [
+    {
+      "file": "resources/modules/jurialmunkey/window.py",
+      "kind": "replace",
+      "count": 1,
+      "contexts": [
+        "52a768c78809673e1149e8b385d407773fcd81927e890f80eda4eb10f1e97c98"
+      ],
+      "find": "def get_current_window(get_dialog=True):\n    dialog = xbmcgui.getCurrentWindowDialogId() if get_dialog else None\n    return dialog if dialog not in DIALOG_ID_EXCLUDELIST else xbmcgui.getCurrentWindowId()\n",
+      "with": "def get_current_window(get_dialog=True):\n    dialog = xbmcgui.getCurrentWindowDialogId() if get_dialog else None\n    if dialog not in DIALOG_ID_EXCLUDELIST:\n        return dialog\n    window = xbmcgui.getCurrentWindowId()\n    # Both calls answer WINDOW_INVALID when there is nothing to report, and asking\n    # xbmcgui.Window() for that id logs an error every time. Fall back to home.\n    return window if window not in DIALOG_ID_EXCLUDELIST else 10000\n"
+    }
+  ]
+}

@@ -51,7 +51,7 @@ jobs:
             git switch "$b"
             cp dist/addons.xml dist/addons.xml.sha256 .
             git add addons.xml addons.xml.sha256
-            git diff --cached --quiet || git commit -m "Index for ${{ steps.build.outputs.version }} / ${{ steps.build.outputs.scraper_version }}"
+            git diff --cached --quiet || git commit -m "Index for ${{ steps.build.outputs.version }} / ${{ steps.build.outputs.scraper_version }} / ${{ steps.build.outputs.helper_version }} / ${{ steps.build.outputs.module_version }}"
             git push origin "$b"
             git switch master
           done
@@ -61,9 +61,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          title="Patch drift at upstream ${{ steps.build.outputs.upstream }} / ${{ steps.build.outputs.scraper_upstream }}"
+          title="Patch drift at upstream ${{ steps.build.outputs.upstream }} / ${{ steps.build.outputs.scraper_upstream }} / ${{ steps.build.outputs.helper_upstream }} / ${{ steps.build.outputs.module_upstream }}"
           if [ -z "$(gh issue list --label drift --state open --search "$title" --json number --jq '.[0].number')" ]; then
             gh issue create --label drift --title "$title" --body \
-              "The build failed for upstream skin ${{ steps.build.outputs.upstream }} / scraper ${{ steps.build.outputs.scraper_upstream }}. A patch gate rejected the input, so nothing was published and the previous versions keep serving. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              "The build failed for upstream skin ${{ steps.build.outputs.upstream }} / scraper ${{ steps.build.outputs.scraper_upstream }} / helper ${{ steps.build.outputs.helper_upstream }} / module ${{ steps.build.outputs.module_upstream }}. A patch gate rejected the input, so nothing was published and the previous versions keep serving. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           fi
 

@@ -15,6 +15,7 @@ import patchlib
 SKIN = "skin.arctic.fuse.3"
 SCRAPER = "metadata.themoviedb.org.python.ntzb"
 HELPER = "plugin.video.themoviedb.helper"
+MODULE = "script.module.jurialmunkey"
 
 SETTING = "View.DisableClearlogoTitle"
 FONT_ADDON = "resource.font.af3hebrew"
@@ -506,6 +507,54 @@ def helper_translated_genres_edits():
     yield HELPER_GENRES, "replace", GENRES_FIND, GENRES_WITH
 
 
+MODULE_WINDOW = "resources/modules/jurialmunkey/window.py"
+
+# xbmcgui.getCurrentWindowId() returns WINDOW_INVALID (9999) whenever the window
+# history is empty, which is where a skin reload leaves it when the window that was
+# active was one of the skin's own -- CApplicationSkinHandling::LoadSkin remembers the
+# id, UnloadSkin deletes the custom windows and purges them from the history, and
+# ActivateWindow() on the remembered id then finds nothing to activate and returns
+# without pushing anything back. GetActiveWindow() answers WINDOW_INVALID from then on.
+#
+# That id is the one value get_current_window() can return that xbmcgui.Window()
+# refuses: CGUIWindowManager::GetWindow() returns nullptr for 0 and WINDOW_INVALID
+# before it even looks the id up, the constructor throws WindowException, and the SWIG
+# wrapper writes "EXCEPTION: Window id does not exist" at LOGERROR on the way out. The
+# except RuntimeError around each call swallows the exception but not the log line, and
+# nothing in the loop clears the condition, so TMDb Helper's two 0.2s pollers spend two
+# window property reads each per iteration writing ~20 errors a second until Kodi is
+# killed.
+#
+# The same excludelist the dialog id is already filtered against is the fix: both
+# xbmcgui calls answer WINDOW_INVALID for "nothing here", and only one of them was
+# checked. 10000 is what every other fallback in this module uses, and it is where Kodi
+# itself lands whenever it cannot restore a window.
+#
+# Window.IsVisible(id) is not the probe to use. It resolves to
+# CGUIWindowManager::IsWindowActive(id, false), which is true when id matches
+# GetActiveWindow() or sits in m_activeDialogs -- and both branches of
+# get_current_window() return exactly one of those, WINDOW_INVALID included. It would be
+# true for every value the function can produce, including the one that throws.
+MODULE_FIND = """def get_current_window(get_dialog=True):
+    dialog = xbmcgui.getCurrentWindowDialogId() if get_dialog else None
+    return dialog if dialog not in DIALOG_ID_EXCLUDELIST else xbmcgui.getCurrentWindowId()
+"""
+
+MODULE_WITH = """def get_current_window(get_dialog=True):
+    dialog = xbmcgui.getCurrentWindowDialogId() if get_dialog else None
+    if dialog not in DIALOG_ID_EXCLUDELIST:
+        return dialog
+    window = xbmcgui.getCurrentWindowId()
+    # Both calls answer WINDOW_INVALID when there is nothing to report, and asking
+    # xbmcgui.Window() for that id logs an error every time. Fall back to home.
+    return window if window not in DIALOG_ID_EXCLUDELIST else 10000
+"""
+
+
+def module_window_edits():
+    yield MODULE_WINDOW, "replace", MODULE_FIND, MODULE_WITH
+
+
 def build(tree, pid, upstream, absent, gen):
     edits = []
     for rel, kind, find, with_ in gen():
@@ -557,6 +606,11 @@ TARGETS = {
     SCRAPER: (
         ("001-english-title.json", "english-title", "PR to be offered to xbmc",
          [[TMDB, "movie_fallback.get('title')"], [TMDB, "self.urls, 'en')"]], english_title_edits),
+    ),
+    MODULE: (
+        ("001-window-id-loop.json", "window-id-loop",
+         "https://github.com/jurialmunkey/script.module.jurialmunkey/issues/11",
+         [[MODULE_WINDOW, "window = xbmcgui.getCurrentWindowId()"]], module_window_edits),
     ),
     HELPER: (
         ("001-english-metadata.json", "english-metadata",

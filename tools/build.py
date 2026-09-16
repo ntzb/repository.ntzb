@@ -20,6 +20,7 @@ UPSTREAM = "https://raw.githubusercontent.com/jurialmunkey/repository.jurialmunk
 KODI = "https://mirrors.kodi.tv/addons/omega"
 SKIN = "skin.arctic.fuse.3"
 HELPER = "plugin.video.themoviedb.helper"
+MODULE = "script.module.jurialmunkey"
 FONT = "resource.font.af3hebrew"
 REPO = "repository.ntzb"
 STOCK = "metadata.themoviedb.org.python"
@@ -29,6 +30,7 @@ SCRAPER_NAME = "The Movie Database Python (ntzb)"
 BUILD_N = 10
 SCRAPER_BUILD_N = 2
 HELPER_BUILD_N = 2
+MODULE_BUILD_N = 1
 FONT_VERSION = "1.1.0"
 REPO_VERSION = "1.0.0"
 
@@ -156,20 +158,23 @@ def main():
     sours = "%s+ntzb%d" % (sup, SCRAPER_BUILD_N)
     hup = upstream_version(HELPER)
     hours = "%s+ntzb%d" % (hup, HELPER_BUILD_N)
+    mup = upstream_version(MODULE)
+    mours = "%s+ntzb%d" % (mup, MODULE_BUILD_N)
     emit(upstream=up, version=ours, scraper_upstream=sup, scraper_version=sours,
-         helper_upstream=hup, helper_version=hours)
-    for a, b in ((up, ours), (sup, sours), (hup, hours)):
+         helper_upstream=hup, helper_version=hours,
+         module_upstream=mup, module_version=mours)
+    for a, b in ((up, ours), (sup, sours), (hup, hours), (mup, mours)):
         log("upstream %s -> publishing %s" % (a, b))
 
     font_src = os.path.join(ROOT, "payload", FONT)
     repo_src = os.path.join(ROOT, "repo", REPO)
     wanted = ((SKIN, ours), (FONT, FONT_VERSION), (REPO, REPO_VERSION), (SCRAPER, sours),
-              (HELPER, hours))
+              (HELPER, hours), (MODULE, mours))
 
     # All or nothing, as before: payload edited without a version bump only reaches
     # users on the next publish, so one missing artifact republishes them all.
     if os.environ.get("FORCE") != "true" and all(already_published(a, v) for a, v in wanted):
-        log("%s, %s and %s already published, nothing to do" % (ours, sours, hours))
+        log("%s, %s, %s and %s already published, nothing to do" % (ours, sours, hours, mours))
         emit(published="skip")
         return
 
@@ -189,14 +194,22 @@ def main():
     patch(htree, HELPER)
     set_addon_version(htree, hours)
 
+    # Published under the stock id too, and for a harder reason: this one is a declared
+    # <requires> of TMDb Helper, script.skinvariables and script.texturemaker, so a
+    # rename would leave all three unable to resolve their dependency.
+    mtree = unpack("%s/%s/%s-%s.zip" % (UPSTREAM, MODULE, MODULE, mup), work, MODULE)
+    patch(mtree, MODULE)
+    set_addon_version(mtree, mours)
+
     stage(dist, SKIN, ours, tree, tree)
     stage(dist, FONT, FONT_VERSION, font_src, font_src)
     stage(dist, REPO, REPO_VERSION, repo_src, repo_src)
     stage(dist, SCRAPER, sours, stree, os.path.join(stree, "resources"))
     stage(dist, HELPER, hours, htree, htree)
+    stage(dist, MODULE, mours, mtree, mtree)
 
     index = [b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>', b"<addons>"]
-    for src in (tree, font_src, repo_src, stree, htree):
+    for src in (tree, font_src, repo_src, stree, htree, mtree):
         with open(os.path.join(src, "addon.xml"), "rb") as fh:
             body = fh.read()
         index.append(body[body.index(b"<addon "):].rstrip())
@@ -208,7 +221,7 @@ def main():
         fh.write(hashlib.sha256(blob).hexdigest().encode())
 
     emit(published="yes")
-    log("staged dist/ for %s, %s and %s" % (ours, sours, hours))
+    log("staged dist/ for %s, %s, %s and %s" % (ours, sours, hours, mours))
 
 if __name__ == "__main__":
     main()

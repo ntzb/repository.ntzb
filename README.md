@@ -1,7 +1,8 @@
 # repository.ntzb
 
-A personal Kodi add-on repository serving patched builds of **Arctic Fuse 3**, **TMDb Helper**
-and Kodi's **TMDb movie scraper**, rebuilt automatically from each upstream release.
+A personal Kodi add-on repository serving patched builds of **Arctic Fuse 3**, **TMDb Helper**,
+**jurialmunkey common** and Kodi's **TMDb movie scraper**, rebuilt automatically from each
+upstream release.
 
 ## What is patched
 
@@ -159,6 +160,58 @@ add-on cannot tell the old Hebrew rows from the new English ones. **Delete
 `addon_data/plugin.video.themoviedb.helper/database_07/` after updating** — otherwise
 everything already cached stays Hebrew for up to thirty days.
 
+### script.module.jurialmunkey
+
+| # | change | upstream |
+|---|--------|----------|
+| 001 | the window id filtered against the same excludelist as the dialog id, so a missing window stops writing an error to the log on every poll | [#11](https://github.com/jurialmunkey/script.module.jurialmunkey/issues/11) |
+
+`get_current_window()` checks the dialog id against `DIALOG_ID_EXCLUDELIST` and returns the window
+id unchecked. Both `xbmcgui` calls answer `WINDOW_INVALID` (9999) when there is nothing to report,
+and only one of them was ever checked:
+
+```diff
+ def get_current_window(get_dialog=True):
+     dialog = xbmcgui.getCurrentWindowDialogId() if get_dialog else None
+-    return dialog if dialog not in DIALOG_ID_EXCLUDELIST else xbmcgui.getCurrentWindowId()
++    if dialog not in DIALOG_ID_EXCLUDELIST:
++        return dialog
++    window = xbmcgui.getCurrentWindowId()
++    return window if window not in DIALOG_ID_EXCLUDELIST else 10000
+```
+
+9999 is the one id `get_current_window()` can return that `xbmcgui.Window()` refuses:
+`CGUIWindowManager::GetWindow()` answers `nullptr` for `0` and `WINDOW_INVALID` before it looks the
+id up, the constructor throws, and the binding writes `EXCEPTION: Window id does not exist` at
+LOGERROR on the way out. The three `except RuntimeError` guards in the module swallow the exception
+but not the log write, and nothing clears the condition — so TMDb Helper's two pollers, both at
+`POLL_MIN_INCREMENT = 0.2` and both reading two window properties an iteration (`ServicePause`, and
+`WidgetContainer` because Arctic Fuse 3 sets `TMDbHelper.UseLocalWidgetContainer`), write about
+twenty errors a second. Measured here: 19.1–19.5/s, with the UI locked up and the cursor smearing
+until Kodi was killed.
+
+Kodi gets into that state after a skin reload. `LoadSkin` remembers the active window id,
+`UnloadSkin` deletes the skin's custom windows and purges them from the window history, and the
+`ActivateWindow(currentWindowID)` at the end then finds nothing to activate and returns without
+pushing anything back, so `GetActiveWindow()` answers `WINDOW_INVALID` from then on.
+
+`Window.IsVisible(<id>)` looks like the obvious non-throwing probe, and is the wrong one. It
+resolves to `CGUIWindowManager::IsWindowActive(id, false)`, true when the id matches
+`GetActiveWindow()` or sits in `m_activeDialogs` — which is exactly what the two `xbmcgui` calls
+return, `WINDOW_INVALID` included. It is true for every value the function can produce, the one
+that throws among them, so it would never fire.
+
+10000 is the fallback `get_property()` and `WindowPropertySetter` already use, and where Kodi lands
+whenever it cannot restore a window, so the callers that compare the result against `WINDOW_IDS`
+get a sensible answer instead of an id matching nothing. A working skin never reaches it: the
+return value is unchanged for every id that names a real window.
+
+Published under the **stock add-on id**, and for a harder reason than TMDb Helper's: it is a
+declared `<requires>` of `plugin.video.themoviedb.helper`, `script.skinvariables` and
+`script.texturemaker`, so a rename would leave all three unable to resolve their dependency. The
+other two only use `get_property`, `set_to_windowprop`, `clear_windowprops` and `WindowProperty`,
+none of which reach `get_current_window()`, so neither is affected by the patch either way.
+
 **Upstreaming is the plan of record.** When a patch is merged upstream it is deleted here, not
 maintained.
 
@@ -190,6 +243,13 @@ TMDb Helper is published under the stock id for the reasons above, so it needs t
 Add-ons → My add-ons → Video add-ons → TMDb Helper → **Choose version** → the entry labelled
 **ntzb Repository**. Settings and the Trakt authorisation carry over untouched, because the add-on
 id — and therefore its `addon_data` directory — is unchanged.
+
+The shared module is a dependency rather than something installed by hand, so Kodi pulls it in on
+its own. It arrives from whichever repository satisfied it first: if TMDb Helper was installed from
+jurialmunkey's repository, that is where the module came from too, and switching TMDb Helper to
+**Choose version** → **ntzb Repository** does not move it. Do the same for
+Add-ons → My add-ons → Add-on libraries → jurialmunkey common. It is a python module, so nothing
+reloads it until Kodi restarts.
 
 The scraper has no such conflict: it is a separate add-on id, installed from
 Add-ons → Install from repository → ntzb Repository → Information providers → Movie information.
