@@ -549,8 +549,6 @@ TARGETS = {
          [[INFO, SETTING], [SKINSET, SETTING]], title_edits),
         ("002-font.json", "font", "jurialmunkey/resource.font.robotocjksc#3",
          [[FONTXML, FONT_ADDON], ["addon.xml", FONT_ADDON]], font_edits),
-        ("003-genre.json", "genre-in-infoline", "feature request to be offered",
-         [[INFO, "<!-- Genre -->"], [INFO, GENRE_SETTING], [SKINSET, GENRE_SETTING]], genre_edits),
         ("004-meta-skeleton.json", "meta-skeleton", "feature request to be offered",
          [[EXPRXML, "Exp_TMDbHelper_IsSkeleton"], [EXPRXML, "Exp_TMDbHelper_IsStaleRatings"],
           [INFO, "Info_Meta_Skeleton"], [INFO, 'name="stale"'],
