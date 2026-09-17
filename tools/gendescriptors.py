@@ -631,8 +631,6 @@ TARGETS = {
          helper_translated_plot_edits),
         ("003-translated-genres.json", "translated-genres", "PR to be offered to jurialmunkey",
          [[HELPER_GENRES, "get_request_url"]], helper_translated_genres_edits),
-        ("004-artwork-guard.json", "artwork-guard", "PR to be offered to jurialmunkey",
-         [[HELPER_MAPPINGS, "isinstance(artworks, list)"]], helper_artwork_guard_edits),
     ),
 }
 
