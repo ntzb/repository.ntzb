@@ -1,8 +1,8 @@
 # repository.ntzb
 
 A personal Kodi add-on repository serving patched builds of **Arctic Fuse 3**, **TMDb Helper**,
-**jurialmunkey common** and Kodi's **TMDb movie scraper**, rebuilt automatically from each
-upstream release.
+**jurialmunkey common**, Kodi's **TMDb movie scraper** and **עידן+ פלוס**, rebuilt automatically
+from each upstream release.
 
 ## What is patched
 
@@ -212,6 +212,69 @@ declared `<requires>` of `plugin.video.themoviedb.helper`, `script.skinvariables
 other two only use `get_property`, `set_to_windowprop`, `clear_windowprops` and `WindowProperty`,
 none of which reach `get_current_window()`, so neither is affected by the patch either way.
 
+### plugin.video.idanplus
+
+| # | change | upstream |
+|---|--------|----------|
+| 001 | the channel logo in the generated m3u taken from `channels.json` as it stands when it is already a url | [Fishenzon/repo#310](https://github.com/Fishenzon/repo/issues/310) |
+| 002 | Kan image urls percent-encoded, so the ones with Hebrew in the path resolve | [Fishenzon/repo#311](https://github.com/Fishenzon/repo/issues/311) |
+
+Both are one-line mistakes with the same shape: a url that is already complete gets treated as
+though it still needed assembling, or one that still needs escaping gets treated as though it were
+already done.
+
+`MakeIPTVlist()` builds `tvg-logo` by pasting `channel['image']` onto the end of the add-on's own
+images directory. That was right when the images shipped with the add-on; it is not now, because
+every one of the 84 entries in the current `channels.json` carries an absolute
+`https://raw.githubusercontent.com/...` url, and the result is a `special://` path with a url
+glued to it that resolves to nothing at all:
+
+```diff
+-                               tvg_logo = 'special://home/addons/{0}/resources/images/{1}'.format(common.AddonID, channel['image'])
++                               image = channel['image']
++                               tvg_logo = image if image.startswith('http://') or image.startswith('https://') else 'special://home/addons/{0}/resources/images/{1}'.format(common.AddonID, image)
+```
+
+The local branch is kept rather than dropped, because nothing says the data has to stay that way.
+The `my_image` branch beside it is left exactly as it was, and deliberately: that value is written
+by `ChangeChannelLogo()` from whatever `SaveLogo()` returns, which is always a bare filename inside
+`addon_data/.../logos/channels/` — it is a local path by construction, even when the user picked
+the logo from a url, because `SaveLogo()` downloads it first.
+
+Kan names a good many of its images in Hebrew, and one of those urls is a 404 until the path is
+escaped, at which point it is a 200:
+
+```
+https://mobapi.kan.org.il/media/qfkdwtzh/poster-image_small_239x360-מקום-שמח.jpg        404
+https://mobapi.kan.org.il/media/qfkdwtzh/poster-image_small_239x360-%D7%9E...%D7%97.jpg 200
+```
+
+The add-on already knows this — `common.quoteNonASCII()` exists for it, and eleven of the fifteen
+calls into `GetImageLink()` already use it — but the other four do not, and two lists built from
+the mobile api bypass `GetImageLink()` altogether. So the quoting moves into the funnel:
+
+```diff
+ def GetImageLink(imageUrl, imageName):
++    imageUrl = common.quoteNonASCII(imageUrl)
+     i = imageUrl.find('?')
+```
+
+`quoteNonASCII()` only touches characters above 127, so `%` survives it and nothing already
+escaped is escaped twice; scheme, host and query are ascii and come through untouched. That makes
+it safe to put in the shared path, where it is a no-op for the eleven callers that already quote.
+The two mobile-api lists — radio series and podcasts — take the same one-word wrap at the point
+they read `media_item[2]`, the logo image, straight out of the response.
+
+Published under the **stock add-on id**. IPTV Simple is pointed at
+`special://profile/addon_data/plugin.video.idanplus/idanplus.m3u`, and the add-on's settings,
+per-channel name and logo overrides, favourites and cached EPG all live in that same directory —
+a rename would take live TV down and orphan the lot.
+
+The add-on's `.py` files are CRLF where every other upstream here is LF, so `patchlib` gates the
+endings a file came in with rather than insisting on LF. Nothing compiled is published: a
+`__pycache__` that outlives an upgrade, or a `.pyc` with no source beside it, is read before the
+patched module is, and `drop_pycache()` plus a check over the finished zip keeps both out.
+
 **Upstreaming is the plan of record.** When a patch is merged upstream it is deleted here, not
 maintained.
 
@@ -253,3 +316,15 @@ reloads it until Kodi restarts.
 
 The scraper has no such conflict: it is a separate add-on id, installed from
 Add-ons → Install from repository → ntzb Repository → Information providers → Movie information.
+
+עידן+ פלוס is published under the stock id too, so it takes the same **Choose version** step as
+TMDb Helper, from Add-ons → My add-ons → Video add-ons. Two things then have to be nudged, because
+neither happens on its own:
+
+- the m3u is only rewritten when the add-on regenerates it, which the service does at Kodi start
+  and every twelve hours. The add-on's settings → live TV → **יצירת קבצים לטלויזיה חיה** does it on
+  demand.
+- IPTV Simple only re-reads an m3u it has already loaded if its instance asks it to, and the
+  instance here has `m3uRefreshMode = 0`. Disabling and re-enabling the PVR client picks the new
+  file up; so does the add-on's **הגדרת IPTV Simple Client לשימוש בקבצי עידן פלוס**, which ends by
+  doing exactly that.

@@ -1,0 +1,37 @@
+{
+  "id": "kan-image-url",
+  "upstream": "https://github.com/Fishenzon/repo/issues/311",
+  "absent": [
+    [
+      "resources/lib/kan.py",
+      "imageUrl = common.quoteNonASCII(imageUrl)"
+    ],
+    [
+      "resources/lib/kan.py",
+      "common.quoteNonASCII(serie['media_group']"
+    ]
+  ],
+  "edits": [
+    {
+      "file": "resources/lib/kan.py",
+      "kind": "replace",
+      "count": 1,
+      "contexts": [
+        "db5340bfbf61a8cc4e6b77bee4cf328cd59fe9c836a0dce90fc4e0054df877f0"
+      ],
+      "find": "def GetImageLink(imageUrl, imageName):\r\n    i = imageUrl.find('?')\r\n",
+      "with": "def GetImageLink(imageUrl, imageName):\r\n    # Several callers hand the url straight out of the page or the mobile api\r\n    # with the Hebrew path still raw, and kan answers 404 to those. Quoting here\r\n    # covers every caller at once; quoteNonASCII leaves ascii alone, so it never\r\n    # double-encodes and is a no-op for the callers that already quote.\r\n    imageUrl = common.quoteNonASCII(imageUrl)\r\n    i = imageUrl.find('?')\r\n"
+    },
+    {
+      "file": "resources/lib/kan.py",
+      "kind": "replace",
+      "count": 2,
+      "contexts": [
+        "973dc2c8dab8b4122f01ab19d90d8ac6280b1b2c7f72a79ecda1a806d4302383",
+        "88c4c715cd75488110753f4c320f9ac6f742f6b24aa98513f3f3649b35286ebe"
+      ],
+      "find": "                image = serie['media_group'][0]['media_item'][2]['src']\r\n",
+      "with": "                image = common.quoteNonASCII(serie['media_group'][0]['media_item'][2]['src'])\r\n"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "tvg-logo",
+  "upstream": "https://github.com/Fishenzon/repo/issues/310",
+  "absent": [
+    [
+      "resources/lib/iptv.py",
+      "image.startswith('http://')"
+    ]
+  ],
+  "edits": [
+    {
+      "file": "resources/lib/iptv.py",
+      "kind": "replace",
+      "count": 1,
+      "contexts": [
+        "3729058c22ced072a9ecb9b558fc149f623809321b07bd921ac1df80158c3f9c"
+      ],
+      "find": "\t\t\tif channel.get('my_image', '') == '':\r\n\t\t\t\ttvg_logo = 'special://home/addons/{0}/resources/images/{1}'.format(common.AddonID, channel['image'])\r\n",
+      "with": "\t\t\tif channel.get('my_image', '') == '':\r\n\t\t\t\timage = channel['image']\r\n\t\t\t\t# Every image in channels.json is an absolute url, and\r\n\t\t\t\t# GetChannelIconFullPath() already hands it to Kodi as it stands.\r\n\t\t\t\t# Only the m3u prefixed the add-on's own images directory onto it.\r\n\t\t\t\ttvg_logo = image if image.startswith('http://') or image.startswith('https://') else 'special://home/addons/{0}/resources/images/{1}'.format(common.AddonID, image)\r\n"
+    }
+  ]
+}

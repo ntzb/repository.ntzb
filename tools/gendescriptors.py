@@ -16,6 +16,7 @@ SKIN = "skin.arctic.fuse.3"
 SCRAPER = "metadata.themoviedb.org.python.ntzb"
 HELPER = "plugin.video.themoviedb.helper"
 MODULE = "script.module.jurialmunkey"
+IDAN = "plugin.video.idanplus"
 
 SETTING = "View.DisableClearlogoTitle"
 FONT_ADDON = "resource.font.af3hebrew"
@@ -602,6 +603,76 @@ def english_title_edits():
     yield TMDB, "replace", ART_FIND, ART_WITH
 
 
+IDAN_IPTV = "resources/lib/iptv.py"
+IDAN_KAN = "resources/lib/kan.py"
+
+
+def _crlf(*lines):
+    """idanplus ships its python with CRLF endings and tab indentation. Spelling
+    the endings out here is what keeps a patch drafted against an LF upstream
+    from being written into one of these files."""
+    return "".join(line + "\r\n" for line in lines)
+
+
+IDAN_LOGO_FIND = _crlf(
+    "\t\t\tif channel.get('my_image', '') == '':",
+    "\t\t\t\ttvg_logo = 'special://home/addons/{0}/resources/images/{1}'"
+    ".format(common.AddonID, channel['image'])",
+)
+
+IDAN_LOGO_WITH = _crlf(
+    "\t\t\tif channel.get('my_image', '') == '':",
+    "\t\t\t\timage = channel['image']",
+    "\t\t\t\t# Every image in channels.json is an absolute url, and",
+    "\t\t\t\t# GetChannelIconFullPath() already hands it to Kodi as it stands.",
+    "\t\t\t\t# Only the m3u prefixed the add-on's own images directory onto it.",
+    "\t\t\t\ttvg_logo = image if image.startswith('http://') or image.startswith('https://')"
+    " else 'special://home/addons/{0}/resources/images/{1}'.format(common.AddonID, image)",
+)
+
+IDAN_IMAGE_FIND = _crlf(
+    "def GetImageLink(imageUrl, imageName):",
+    "    i = imageUrl.find('?')",
+)
+
+IDAN_IMAGE_WITH = _crlf(
+    "def GetImageLink(imageUrl, imageName):",
+    "    # Several callers hand the url straight out of the page or the mobile api",
+    "    # with the Hebrew path still raw, and kan answers 404 to those. Quoting here",
+    "    # covers every caller at once; quoteNonASCII leaves ascii alone, so it never",
+    "    # double-encodes and is a no-op for the callers that already quote.",
+    "    imageUrl = common.quoteNonASCII(imageUrl)",
+    "    i = imageUrl.find('?')",
+)
+
+IDAN_RADIO_FIND = _crlf(
+    "                image = serie['media_group'][0]['media_item'][2]['src']",
+)
+
+IDAN_RADIO_WITH = _crlf(
+    "                image = common.quoteNonASCII("
+    "serie['media_group'][0]['media_item'][2]['src'])",
+)
+
+
+def idan_tvg_logo_edits():
+    # The my_image branch below is left alone: main.ChangeChannelLogo() stores
+    # whatever SaveLogo() returns, which is a bare filename, never a url.
+    yield IDAN_IPTV, "replace", IDAN_LOGO_FIND, IDAN_LOGO_WITH
+
+
+def idan_image_url_edits():
+    # GetImageLink is the funnel: fifteen of the image call sites in kan.py go
+    # through it, and four of them -- kids episodes, radio series from html,
+    # podcasts and podcast episodes -- pass the url unquoted.
+    yield IDAN_KAN, "replace", IDAN_IMAGE_FIND, IDAN_IMAGE_WITH
+    # Two lists built from the mobile api -- radio series and podcasts -- are the
+    # sites that never reach GetImageLink: each slices the query off the src and
+    # hands the rest straight to Kodi. media_item[2] is the logo image, and kan
+    # names those in Hebrew.
+    yield IDAN_KAN, "replace", IDAN_RADIO_FIND, IDAN_RADIO_WITH
+
+
 TARGETS = {
     SKIN: (
         ("001-text-title.json", "text-title", "PR to be offered to jurialmunkey",
@@ -616,6 +687,14 @@ TARGETS = {
     SCRAPER: (
         ("001-english-title.json", "english-title", "PR to be offered to xbmc",
          [[TMDB, "movie_fallback.get('title')"], [TMDB, "self.urls, 'en')"]], english_title_edits),
+    ),
+    IDAN: (
+        ("001-tvg-logo.json", "tvg-logo", "https://github.com/Fishenzon/repo/issues/310",
+         [[IDAN_IPTV, "image.startswith('http://')"]], idan_tvg_logo_edits),
+        ("002-kan-image-url.json", "kan-image-url",
+         "https://github.com/Fishenzon/repo/issues/311",
+         [[IDAN_KAN, "imageUrl = common.quoteNonASCII(imageUrl)"],
+          [IDAN_KAN, "common.quoteNonASCII(serie['media_group']"]], idan_image_url_edits),
     ),
     MODULE: (
         ("001-window-id-loop.json", "window-id-loop",

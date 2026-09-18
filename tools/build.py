@@ -18,6 +18,9 @@ import patchlib
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UPSTREAM = "https://raw.githubusercontent.com/jurialmunkey/repository.jurialmunkey/master/omega/zips"
 KODI = "https://mirrors.kodi.tv/addons/omega"
+# Fishenzon publishes one addons.xml at the repo root and the released zips
+# under zips/<id>/, which is where <datadir> in repository.Fishenzon points.
+FISH = "https://raw.githubusercontent.com/Fishenzon/repo/master"
 SKIN = "skin.arctic.fuse.3"
 HELPER = "plugin.video.themoviedb.helper"
 MODULE = "script.module.jurialmunkey"
@@ -27,10 +30,12 @@ STOCK = "metadata.themoviedb.org.python"
 STOCK_NAME = "The Movie Database Python"
 SCRAPER = STOCK + ".ntzb"
 SCRAPER_NAME = "The Movie Database Python (ntzb)"
+IDAN = "plugin.video.idanplus"
 BUILD_N = 10
 SCRAPER_BUILD_N = 2
 HELPER_BUILD_N = 1
 MODULE_BUILD_N = 1
+IDAN_BUILD_N = 1
 FONT_VERSION = "1.1.0"
 REPO_VERSION = "1.0.0"
 
@@ -56,6 +61,23 @@ def kodi_version(addon_id):
     """The version Kodi's own repository advertises -- the released artifact, not git."""
     return index_version(gzip.decompress(fetch(KODI + "/addons.xml.gz")), addon_id,
                          "kodi addons.xml.gz")
+
+
+def fish_version(addon_id):
+    return index_version(fetch(FISH + "/addons.xml"), addon_id, "Fishenzon addons.xml")
+
+
+def drop_pycache(tree):
+    """Kodi's python never compares a sourceless .pyc against the .py beside it,
+    and a __pycache__ that survives an upgrade is read before the source it was
+    built from is even looked at. Either one would make the patched module the
+    one thing that never runs, so nothing compiled leaves here."""
+    for base, dirs, files in os.walk(tree, topdown=False):
+        for d in [d for d in dirs if d == "__pycache__"]:
+            shutil.rmtree(os.path.join(base, d))
+            dirs.remove(d)
+        for f in [f for f in files if f.endswith((".pyc", ".pyo"))]:
+            os.remove(os.path.join(base, f))
 
 
 def rename_addon(tree):
@@ -160,21 +182,25 @@ def main():
     hours = "%s+ntzb%d" % (hup, HELPER_BUILD_N)
     mup = upstream_version(MODULE)
     mours = "%s+ntzb%d" % (mup, MODULE_BUILD_N)
+    iup = fish_version(IDAN)
+    iours = "%s+ntzb%d" % (iup, IDAN_BUILD_N)
     emit(upstream=up, version=ours, scraper_upstream=sup, scraper_version=sours,
          helper_upstream=hup, helper_version=hours,
-         module_upstream=mup, module_version=mours)
-    for a, b in ((up, ours), (sup, sours), (hup, hours), (mup, mours)):
+         module_upstream=mup, module_version=mours,
+         idan_upstream=iup, idan_version=iours)
+    for a, b in ((up, ours), (sup, sours), (hup, hours), (mup, mours), (iup, iours)):
         log("upstream %s -> publishing %s" % (a, b))
 
     font_src = os.path.join(ROOT, "payload", FONT)
     repo_src = os.path.join(ROOT, "repo", REPO)
     wanted = ((SKIN, ours), (FONT, FONT_VERSION), (REPO, REPO_VERSION), (SCRAPER, sours),
-              (HELPER, hours), (MODULE, mours))
+              (HELPER, hours), (MODULE, mours), (IDAN, iours))
 
     # All or nothing, as before: payload edited without a version bump only reaches
     # users on the next publish, so one missing artifact republishes them all.
     if os.environ.get("FORCE") != "true" and all(already_published(a, v) for a, v in wanted):
-        log("%s, %s, %s and %s already published, nothing to do" % (ours, sours, hours, mours))
+        log("%s, %s, %s, %s and %s already published, nothing to do"
+            % (ours, sours, hours, mours, iours))
         emit(published="skip")
         return
 
@@ -201,18 +227,36 @@ def main():
     patch(mtree, MODULE)
     set_addon_version(mtree, mours)
 
+    # Published under the stock id as well. IPTV Simple is configured with
+    # special://profile/addon_data/plugin.video.idanplus/idanplus.m3u, and the
+    # add-on's own settings, channel overrides and logos live under that same
+    # directory, so a rename would orphan the lot and break live TV with it.
+    itree = unpack("%s/zips/%s/%s-%s.zip" % (FISH, IDAN, IDAN, iup), work, IDAN)
+    patch(itree, IDAN)
+    drop_pycache(itree)
+    set_addon_version(itree, iours)
+
     stage(dist, SKIN, ours, tree, tree)
     stage(dist, FONT, FONT_VERSION, font_src, font_src)
     stage(dist, REPO, REPO_VERSION, repo_src, repo_src)
     stage(dist, SCRAPER, sours, stree, os.path.join(stree, "resources"))
     stage(dist, HELPER, hours, htree, htree)
     stage(dist, MODULE, mours, mtree, mtree)
+    iout = stage(dist, IDAN, iours, itree, itree)
+
+    ipath = os.path.join(iout, "%s-%s.zip" % (IDAN, iours))
+    with zipfile.ZipFile(ipath) as z:
+        compiled = [n for n in z.namelist() if n.endswith((".pyc", ".pyo")) or "__pycache__" in n]
+    if compiled:
+        raise SystemExit("%s: compiled python in the artifact: %r" % (IDAN, compiled))
 
     index = [b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>', b"<addons>"]
-    for src in (tree, font_src, repo_src, stree, htree, mtree):
+    for src in (tree, font_src, repo_src, stree, htree, mtree, itree):
         with open(os.path.join(src, "addon.xml"), "rb") as fh:
             body = fh.read()
-        index.append(body[body.index(b"<addon "):].rstrip())
+        # idanplus ships its addon.xml with CRLF; the index is joined with LF and
+        # is hashed, so the endings have to be one thing or the other.
+        index.append(body[body.index(b"<addon "):].rstrip().replace(b"\r\n", b"\n"))
     index.append(b"</addons>\n")
     blob = b"\n".join(index)
     with open(os.path.join(dist, "addons.xml"), "wb") as fh:
@@ -221,7 +265,7 @@ def main():
         fh.write(hashlib.sha256(blob).hexdigest().encode())
 
     emit(published="yes")
-    log("staged dist/ for %s, %s, %s and %s" % (ours, sours, hours, mours))
+    log("staged dist/ for %s, %s, %s, %s and %s" % (ours, sours, hours, mours, iours))
 
 if __name__ == "__main__":
     main()

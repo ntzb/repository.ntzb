@@ -1,7 +1,9 @@
 """Declarative byte-level patching of third-party add-on trees.
 
-Everything is bytes: these files are UTF-8 with LF endings in a repo that declares
-`* text eol=lf`, and a text-mode round trip on Windows silently rewrites both.
+Everything is bytes: a text-mode round trip on Windows silently rewrites both the
+encoding and the line endings, and the upstreams disagree about the latter --
+jurialmunkey ships LF, Fishenzon ships CRLF, and each has to come back out the
+way it went in.
 """
 import hashlib
 import json
@@ -83,6 +85,8 @@ def apply(tree, desc, strict_context=True):
             if context_hashes(buf, find) != e["contexts"]:
                 raise PatchError("%s: context changed around %r" % (rel, e["find"][:60]))
 
+    pristine = dict(bufs)
+
     for e in desc["edits"]:
         rel, find = e["file"], _b(e["find"])
         bufs[rel] = bufs[rel].replace(find, _b(e["with"]))
@@ -99,8 +103,15 @@ def apply(tree, desc, strict_context=True):
         if buf.count(with_) != count:
             raise PatchError("%s: post-condition count wrong" % rel)
 
+    # The gate is "the endings upstream shipped, unchanged" rather than "LF
+    # everywhere": a bare LF written into a CRLF file is the same accident in
+    # reverse, and it is the one a patch drafted against an LF upstream makes.
     for rel in sorted(set(touched)):
-        if b"\r\n" in bufs[rel]:
+        buf = bufs[rel]
+        if b"\r\n" in pristine[rel]:
+            if buf.count(b"\n") != buf.count(b"\r\n"):
+                raise PatchError("%s: bare LF written into a CRLF file" % rel)
+        elif b"\r\n" in buf:
             raise PatchError("%s: CRLF introduced" % rel)
         with open(os.path.join(tree, rel), "wb") as fh:
             fh.write(bufs[rel])
