@@ -229,8 +229,7 @@ RATINGS_WITH = (
 STATUS_FIND = (
     '                        <param name="visible">'
     '[[String.IsEqual($PARAM[container]$PARAM[listitem].DBType,tvshow) | '
-    'String.IsEqual($PARAM[container]$PARAM[listitem].DBType,season) | '
-    'String.IsEqual($PARAM[container]$PARAM[listitem].DBType,episode) | $PARAM[override_tvshow]] + '
+    'String.IsEqual($PARAM[container]$PARAM[listitem].DBType,season) | $PARAM[override_tvshow]] + '
     '!String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].Status))]</param>\n')
 
 STATUS_WITH = (

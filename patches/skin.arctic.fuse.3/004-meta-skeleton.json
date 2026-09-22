@@ -101,10 +101,10 @@
       "kind": "replace",
       "count": 1,
       "contexts": [
-        "3c54673a148948e0cba9afe32636684691c0cd2a865728cd868e029354e50875"
+        "51a839d404d8c9b23c02ae12f6dc3dccc533fa987b6d906189f527614037ae8c"
       ],
-      "find": "                        <param name=\"visible\">[[String.IsEqual($PARAM[container]$PARAM[listitem].DBType,tvshow) | String.IsEqual($PARAM[container]$PARAM[listitem].DBType,season) | String.IsEqual($PARAM[container]$PARAM[listitem].DBType,episode) | $PARAM[override_tvshow]] + !String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].Status))]</param>\n",
-      "with": "                        <param name=\"stale\">$EXP[Exp_TMDbHelper_IsStaleDetails]</param>\n                        <param name=\"visible\">!$EXP[Exp_TMDbHelper_IsStaleDetails] + [[String.IsEqual($PARAM[container]$PARAM[listitem].DBType,tvshow) | String.IsEqual($PARAM[container]$PARAM[listitem].DBType,season) | String.IsEqual($PARAM[container]$PARAM[listitem].DBType,episode) | $PARAM[override_tvshow]] + !String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].Status))]</param>\n"
+      "find": "                        <param name=\"visible\">[[String.IsEqual($PARAM[container]$PARAM[listitem].DBType,tvshow) | String.IsEqual($PARAM[container]$PARAM[listitem].DBType,season) | $PARAM[override_tvshow]] + !String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].Status))]</param>\n",
+      "with": "                        <param name=\"stale\">$EXP[Exp_TMDbHelper_IsStaleDetails]</param>\n                        <param name=\"visible\">!$EXP[Exp_TMDbHelper_IsStaleDetails] + [[String.IsEqual($PARAM[container]$PARAM[listitem].DBType,tvshow) | String.IsEqual($PARAM[container]$PARAM[listitem].DBType,season) | $PARAM[override_tvshow]] + !String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].Status))]</param>\n"
     },
     {
       "file": "1080i/Includes_Info.xml",
