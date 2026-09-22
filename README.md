@@ -14,6 +14,56 @@ from each upstream release.
 | 002 | Hebrew final forms restored to the Unicode fontset | [robotocjksc#3](https://github.com/jurialmunkey/resource.font.robotocjksc/issues/3), [rsms/inter#903](https://github.com/rsms/inter/issues/903) |
 | 003 | the first genre in the info line, in place of the age rating, behind a skin setting | feature request to be offered |
 | 004 | the stale half of the meta row held back behind a loading placeholder while TMDb Helper fetches, behind a skin setting | feature request to be offered |
+| 005 | two more landscape widget styles, labelling the row `Show: Episode`, one of them on the show's wide art | feature request to be offered |
+
+Patch 005 exists because the landscape widget labels an episode with the episode title and nothing
+else, and in a *next episodes* widget that is the one field which does not say what the row is.
+"Special Treatments" is a row about The White Lotus, and the only thing on screen that says so is a
+frame grab. So two more landscape styles are added beside the stock one, both labelling the row
+`Show: Episode`: **Landscape with show title** keeps the episode still, and **Landscape with show
+title and art** swaps the still for the show's wide art. Neither replaces the stock **Landscape**
+style; all three sit in the same list.
+
+They are picked per widget, where every other widget setting is picked. Skin settings →
+**Customise shortcuts and widgets** (or Settings → **Customise widgets**), pick the menu the widget
+lives on down the left, **Widgets** on the right, then the widget itself, then **Style**. The two
+new entries sit at the end of the same list as Poster, Landscape, Square and the rest. Closing that
+dialog rewrites the generated widget includes, and so does every Home load, so the choice takes
+effect without a skin reload.
+
+The art key is `tvshow.landscape`, and it is on the items rather than inferred. `VideoLibrary.
+GetEpisodeDetails` returns the show's artwork alongside the episode's under a `tvshow.` prefix, and
+`script.module.metadatautils` puts the whole dictionary on the listitem untouched. It also copies
+the show's landscape down onto the bare `landscape` key when the episode has none, which is why the
+stock style can look right on some items: on this library the two are the same url for every show
+that has one. They are not the same key, though. A library episode that carries its own landscape
+would answer with the episode's, and `season.landscape` is a third picture again, a per-season card
+rather than the show's wide art. So the chain asks for `tvshow.landscape` first and treats
+`landscape` as the fallback, not the other way round. The episode still is not in the chain at all.
+
+Four of the twenty-seven shows in this library have no landscape at all, and they fall through to
+`tvshow.fanart`, which is wide and is what the stock style would have shown for a show with no
+episode thumbnail anyway.
+
+The two new layouts are upstream's `Layout_Landscape` and `Layout_Labels` with one include name and
+one label expression changed, and `tools/gendescriptors.py` lifts them out of the pristine tree at
+generation time rather than restating them, so they cannot drift from upstream by transcription.
+They are new includes rather than edits to the originals: the stock landscape widget, the OSD
+playlist, the PVR guide and every hub row that uses them are left exactly as they were.
+
+Every anchor is an `<include name="...">` or `<variable name="...">` declaration line, except the
+two in the generator data, which are the catch-all rule each file ends with. Both kinds are the
+most stable lines a skin file has. An include cannot be renamed without rewriting every call site,
+and the catch-all is where upstream itself inserts ahead of, which is how Placard arrived in
+`59d791a`. The new text is inserted whole at those points, so no upstream line is rewritten in
+`Includes_Layouts.xml`, `Includes_Lists.xml`, `Includes_Widgets.xml`, `Includes_Labels.xml` or
+`Includes_Images.xml`; the one line that is rewritten is the widget style option list in
+`Includes_Actions.xml`, and the new options are appended to its tail.
+
+The style names are plain English rather than `$LOCALIZE` ids. They ride inside a `RunPlugin()`
+builtin that `script.skinvariables` splits on `&&` and then `unquote_plus`es, so they must avoid
+`&`, `=`, `+` and brackets; and a numbered string would stake a claim on an id that upstream is
+still handing out one at a time.
 
 Patch 004 exists because the ratings, status and awards in the info row come from TMDb Helper's
 service monitor, which answers a focus change some way after the cursor has moved — three or four

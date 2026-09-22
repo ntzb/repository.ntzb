@@ -1,0 +1,138 @@
+{
+  "id": "nextup-widget-styles",
+  "upstream": "feature request to be offered",
+  "absent": [
+    [
+      "1080i/Includes_Layouts.xml",
+      "Layout_Landscape_ShowTitle"
+    ],
+    [
+      "1080i/Includes_Layouts.xml",
+      "Layout_Labels_ShowTitle"
+    ],
+    [
+      "1080i/Includes_Lists.xml",
+      "List_Landscape_Titled_Row"
+    ],
+    [
+      "1080i/Includes_Lists.xml",
+      "List_Landscape_ShowArt_Row"
+    ],
+    [
+      "1080i/Includes_Widgets.xml",
+      "Widget_Busy_BlankItems__List_Landscape_Titled_Row"
+    ],
+    [
+      "1080i/Includes_Labels.xml",
+      "Label_Landscape_ShowTitle"
+    ],
+    [
+      "1080i/Includes_Images.xml",
+      "Image_Landscape_ShowArt"
+    ],
+    [
+      "1080i/Includes_Actions.xml",
+      "LandscapeTitled"
+    ],
+    [
+      "shortcuts/generator/data/setup/widgets_include_row.xml",
+      "LandscapeTitled"
+    ],
+    [
+      "shortcuts/generator/data/setup/widgets_include_wall.xml",
+      "LandscapeTitled"
+    ]
+  ],
+  "edits": [
+    {
+      "file": "1080i/Includes_Layouts.xml",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "e59cb480b1f32a78e5620e36365d47084a96b6f0ec615de4f49a9528b9e040dc"
+      ],
+      "find": "    <include name=\"Layout_Landscape\">\n",
+      "with": "    <include name=\"Layout_Labels_ShowTitle\">\n        <param name=\"fade\">false</param>\n        <param name=\"selected\">false</param>\n        <param name=\"include_detailed_labels\">Skin.HasSetting(View.UseDetailedListLabels)</param>\n        <param name=\"use_label\">false</param>\n        <param name=\"use_label2\">false</param>\n        <param name=\"aligny\">top</param>\n        <param name=\"textbox_offset_y\">7</param>\n        <definition>\n            <control type=\"image\">\n                <texture border=\"20\" colordiffuse=\"e7ffffff\">common/poster_fade.png</texture>\n                <visible>$PARAM[fade]</visible>\n                <height>$PARAM[item_h]</height>\n            </control>\n\n            <control type=\"group\">\n                <top>$PARAM[item_h]</top>\n                <control type=\"group\">\n                    <top>$PARAM[top]</top>\n                    <left>$PARAM[left]</left>\n                    <right>$PARAM[right]</right>\n                    <height>80</height>\n\n                    <include content=\"Object_Control\" condition=\"![$PARAM[include_detailed_labels]] + ![$PARAM[use_label]]\">\n                        <param name=\"control\">textbox</param>\n                        <top>$PARAM[textbox_offset_y]</top>\n                        <bottom>$PARAM[textbox_offset_y]</bottom>\n                        <aligny>$PARAM[aligny]</aligny>\n                        <font>font_mini</font>\n                        <include content=\"Object_Label\" condition=\"$PARAM[use_label2]\">\n                            <param name=\"label\">$VAR[Label_Landscape_ShowTitle]$INFO[$PARAM[listitem].Label2, - ,]</param>\n                        </include>\n                        <label>$VAR[Label_Landscape_ShowTitle]</label>\n                        <align>left</align>\n                        <include condition=\"$PARAM[selected]\">Color_SelectedText</include>\n                        <textcolor>main_fg_70</textcolor>\n                    </include>\n                    <include content=\"Object_Control\" condition=\"![$PARAM[include_detailed_labels]] + $PARAM[use_label]\">\n                        <param name=\"control\">label</param>\n                        <top>$PARAM[textbox_offset_y]</top>\n                        <bottom>$PARAM[textbox_offset_y]</bottom>\n                        <aligny>$PARAM[aligny]</aligny>\n                        <font>font_mini</font>\n                        <include content=\"Object_Label\" condition=\"$PARAM[use_label2]\">\n                            <param name=\"label\">$VAR[Label_Landscape_ShowTitle]$INFO[$PARAM[listitem].Label2, - ,]</param>\n                        </include>\n                        <label>$VAR[Label_Landscape_ShowTitle]</label>\n                        <align>left</align>\n                        <include condition=\"$PARAM[selected]\">Color_SelectedText</include>\n                        <textcolor>main_fg_70</textcolor>\n                    </include>\n\n                    <include content=\"Object_InfoCircle_Text_Top\" condition=\"$PARAM[include_detailed_labels]\">\n                        <label>$VAR[Label_Landscape_ShowTitle]</label>\n                        <include condition=\"$PARAM[selected]\">Color_SelectedText</include>\n                        <textcolor>$PARAM[textcolor]_90</textcolor>\n                        <align>left</align>\n                        <selectedcolor>$PARAM[textcolor]_90</selectedcolor>\n                    </include>\n\n                    <control type=\"group\">\n                        <include content=\"Object_InfoCircle_Text_Sub\" condition=\"$PARAM[include_detailed_labels]\">\n                            <label>$VAR[Label_Landscape_Lower$PARAM[affix]]</label>\n                            <include condition=\"$PARAM[selected]\">Color_SelectedText</include>\n                            <textcolor>$PARAM[textcolor]_70</textcolor>\n                            <selectedcolor>$PARAM[textcolor]_70</selectedcolor>\n                            <align>left</align>\n                        </include>\n                        <include content=\"Object_InfoCircle_Text_Sub\" condition=\"$PARAM[include_detailed_labels]\">\n                            <label>$INFO[$PARAM[listitem].StartTime]$INFO[$PARAM[listitem].EndTime, - ,]</label>\n                            <include condition=\"$PARAM[selected]\">Color_SelectedText</include>\n                            <textcolor>$PARAM[textcolor]_70</textcolor>\n                            <selectedcolor>$PARAM[textcolor]_70</selectedcolor>\n                            <align>right</align>\n                            <visible>!String.IsEmpty($PARAM[listitem].ChannelNumberLabel)</visible>\n                            <visible>ListItem.InProgress</visible>\n                        </include>\n                        <include content=\"Object_InfoCircle_Text_Sub\" condition=\"$PARAM[include_detailed_labels]\">\n                            <label>$INFO[$PARAM[listitem].Date]</label>\n                            <include condition=\"$PARAM[selected]\">Color_SelectedText</include>\n                            <textcolor>$PARAM[textcolor]_70</textcolor>\n                            <selectedcolor>$PARAM[textcolor]_70</selectedcolor>\n                            <align>right</align>\n                            <visible>!String.IsEmpty($PARAM[listitem].ChannelNumberLabel)</visible>\n                            <visible>!ListItem.InProgress</visible>\n                        </include>\n                    </control>\n                </control>\n            </control>\n        </definition>\n    </include>\n\n    <include name=\"Layout_Landscape_ShowTitle\">\n        <param name=\"detailed\">false</param>\n        <param name=\"selected\">false</param>\n        <param name=\"icon\">$VAR[Image_Landscape]</param>\n        <param name=\"textcolor\">main_fg</param>\n        <param name=\"diffuse\">diffuse/landscape_w410_h231.png</param>\n        <param name=\"listitem\">ListItem</param>\n        <param name=\"progress\">Progress</param>\n        <param name=\"affix\" />\n        <definition>\n            <control type=\"group\">\n\n                <width>$PARAM[item_w]</width>\n                <height>$PARAM[item_h]</height>\n\n                <include content=\"Object_ItemBack\">\n                    <param name=\"selected\">$PARAM[selected]</param>\n                    <param name=\"shadow_colordiffuse\">$PARAM[shadow_colordiffuse]</param>\n                </include>\n\n                <include content=\"Object_Control\" condition=\"$PARAM[selected]\">\n                    <param name=\"control\">image</param>\n                    <include>Texture_Box_Highlight_V</include>\n                </include>\n\n                <include content=\"Object_Layout_Image_Rectangle\" condition=\"![$PARAM[detailed]]\">\n                    <param name=\"diffuse\">$PARAM[diffuse]</param>\n                    <param name=\"icon\">$PARAM[icon]</param>\n                    <param name=\"listitem\">$PARAM[listitem]</param>\n                    <param name=\"selected\">$PARAM[selected]</param>\n                    <param name=\"aspectratio\">keep</param>\n                </include>\n\n                <include content=\"Object_Layout_Image_Rectangle\" condition=\"$PARAM[detailed]\">\n                    <param name=\"diffuse\">$PARAM[diffuse]</param>\n                    <param name=\"icon\">$PARAM[icon]</param>\n                    <param name=\"listitem\">$PARAM[listitem]</param>\n                    <param name=\"selected\">$PARAM[selected]</param>\n                    <param name=\"aspectratio\">scale</param>\n                </include>\n\n                <include content=\"Object_ClearLogo_WithShadow\">\n                    <param name=\"diffuse\">$PARAM[diffuse]</param>\n                    <param name=\"icon\">$INFO[$PARAM[listitem].Art(clearlogo)]</param>\n                    <visible>[String.IsEqual($PARAM[listitem].DBType,movie) | String.IsEqual($PARAM[listitem].DBType,tvshow)] + String.IsEmpty($PARAM[listitem].Art(landscape)) + String.IsEmpty($PARAM[listitem].Art(tvshow.landscape))</visible>\n                </include>\n\n                <include content=\"Object_ProgressLine\">\n                    <param name=\"progress\">$PARAM[listitem].$PARAM[progress]</param>\n                </include>\n\n                <include content=\"Object_Indicator\" condition=\"!$PARAM[selected]\">\n                    <param name=\"affix\">$PARAM[affix]</param>\n                    <param name=\"listitem\">$PARAM[listitem]</param>\n                </include>\n\n                <include content=\"Object_ContentBanner\" condition=\"$PARAM[indicator]\">\n                    <param name=\"listitem\">$PARAM[listitem]</param>\n                </include>\n\n                <include content=\"Object_TraktOverlays\" condition=\"$PARAM[indicator] + [Skin.HasSetting(Indicator.TraktWatchlist) | Skin.HasSetting(Indicator.TraktFavourites)]\">\n                    <param name=\"listitem\">$PARAM[listitem]</param>\n                </include>\n\n                <include content=\"Layout_Labels_ShowTitle\" condition=\"![$PARAM[detailed]]\">\n                    <param name=\"top\">10</param>\n                    <param name=\"item_h\">$PARAM[item_h]</param>\n                    <param name=\"affix\">$PARAM[affix]</param>\n                    <param name=\"listitem\">$PARAM[listitem]</param>\n                    <param name=\"textcolor\">$PARAM[textcolor]</param>\n                    <param name=\"use_label2\">$PARAM[use_label2]</param>\n                </include>\n\n                <include content=\"Object_SelectBox\" condition=\"$PARAM[selected]\">\n                    <param name=\"affix\">$PARAM[affix]</param>\n                    <param name=\"indicator\">true</param>\n                    <param name=\"focusbounce\">true</param>\n                    <param name=\"listitem\">$PARAM[listitem]</param>\n                </include>\n            </control>\n        </definition>\n    </include>\n\n    <include name=\"Layout_Landscape\">\n"
+    },
+    {
+      "file": "1080i/Includes_Lists.xml",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "999f3dc0b5c3ec03f59aa2b106cc79a70e1aa7c73c8d409ac97d43014c68a6a3"
+      ],
+      "find": "    <include name=\"List_Landscape_Row\">\n",
+      "with": "    <include name=\"List_Landscape_Titled_Row\">\n        <param name=\"item_w\">view_landscape_item_w</param>\n        <param name=\"item_h\">view_landscape_item_h</param>\n        <param name=\"itemlayout_w\">view_landscape_itemlayout_w</param>\n        <param name=\"itemlayout_h\">view_poster_itemlayout_h</param>\n        <param name=\"control\">fixedlist</param>\n        <param name=\"orientation\">horizontal</param>\n        <definition>\n            <include content=\"List_Core\">\n                <param name=\"orientation\">$PARAM[orientation]</param>\n                <param name=\"control\">$PARAM[control]</param>\n                <param name=\"id\">$PARAM[id]</param>\n                <param name=\"item_w\">$PARAM[item_w]</param>\n                <param name=\"item_h\">$PARAM[item_h]</param>\n                <param name=\"itemlayout_w\">$PARAM[itemlayout_w]</param>\n                <param name=\"itemlayout_h\">$PARAM[itemlayout_h]</param>\n                <param name=\"itemlayout_include\">Layout_Landscape_ShowTitle</param>\n                <param name=\"icon\">$VAR[Image_Landscape]</param>\n                <param name=\"textcolor\">$PARAM[textcolor]</param>\n                <param name=\"offset_x\">$PARAM[offset_x]</param>\n                <param name=\"offset_y\">$PARAM[offset_y]</param>\n                <param name=\"shadow_colordiffuse\">$PARAM[shadow_colordiffuse]</param>\n                <param name=\"hidden_button_enabled\">$PARAM[hidden_button_enabled]</param>\n                <param name=\"hidden_button\">$PARAM[hidden_button]</param>\n                <param name=\"use_label2\">$PARAM[use_label2]</param>\n                <nested />\n                <include>List_Landscape_Row_Movement</include>\n            </include>\n        </definition>\n    </include>\n\n    <include name=\"List_Landscape_ShowArt_Row\">\n        <param name=\"item_w\">view_landscape_item_w</param>\n        <param name=\"item_h\">view_landscape_item_h</param>\n        <param name=\"itemlayout_w\">view_landscape_itemlayout_w</param>\n        <param name=\"itemlayout_h\">view_poster_itemlayout_h</param>\n        <param name=\"control\">fixedlist</param>\n        <param name=\"orientation\">horizontal</param>\n        <definition>\n            <include content=\"List_Core\">\n                <param name=\"orientation\">$PARAM[orientation]</param>\n                <param name=\"control\">$PARAM[control]</param>\n                <param name=\"id\">$PARAM[id]</param>\n                <param name=\"item_w\">$PARAM[item_w]</param>\n                <param name=\"item_h\">$PARAM[item_h]</param>\n                <param name=\"itemlayout_w\">$PARAM[itemlayout_w]</param>\n                <param name=\"itemlayout_h\">$PARAM[itemlayout_h]</param>\n                <param name=\"itemlayout_include\">Layout_Landscape_ShowTitle</param>\n                <param name=\"icon\">$VAR[Image_Landscape_ShowArt]</param>\n                <param name=\"textcolor\">$PARAM[textcolor]</param>\n                <param name=\"offset_x\">$PARAM[offset_x]</param>\n                <param name=\"offset_y\">$PARAM[offset_y]</param>\n                <param name=\"shadow_colordiffuse\">$PARAM[shadow_colordiffuse]</param>\n                <param name=\"hidden_button_enabled\">$PARAM[hidden_button_enabled]</param>\n                <param name=\"hidden_button\">$PARAM[hidden_button]</param>\n                <param name=\"use_label2\">$PARAM[use_label2]</param>\n                <nested />\n                <include>List_Landscape_Row_Movement</include>\n            </include>\n        </definition>\n    </include>\n\n    <include name=\"List_Landscape_Row\">\n"
+    },
+    {
+      "file": "1080i/Includes_Widgets.xml",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "3d48b68b6843ff55cc8f3c50bd2a954a27194447b3894fe6b0da12e37964bc27"
+      ],
+      "find": "    <include name=\"Widget_Busy_BlankItems__List_Landscape_Row\">\n",
+      "with": "    <include name=\"Widget_Busy_BlankItems__List_Landscape_Titled_Row\">\n        <include>Widget_Busy_BlankItems__List_Landscape_Row</include>\n    </include>\n    <include name=\"Widget_Busy_BlankItems__List_Landscape_ShowArt_Row\">\n        <include>Widget_Busy_BlankItems__List_Landscape_Row</include>\n    </include>\n    <include name=\"Widget_Busy_BlankItems__List_Landscape_Row\">\n"
+    },
+    {
+      "file": "1080i/Includes_Labels.xml",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "c2a6d2e881d2846b7c550884d39712eee73ecb66db588274c3bd5a41bc38f6a7"
+      ],
+      "find": "    <variable name=\"Label_Widget_Style\">\n",
+      "with": "    <variable name=\"Label_Landscape_ShowTitle\">\n        <value condition=\"!String.IsEmpty(ListItem.TVShowTitle) + !String.IsEmpty(ListItem.Title) + !String.IsEqual(ListItem.DBType,tvshow)\">$INFO[ListItem.TVShowTitle]$INFO[ListItem.Title,: ,]</value>\n        <value>$INFO[ListItem.Label]</value>\n    </variable>\n\n    <variable name=\"Label_Widget_Style\">\n        <value condition=\"String.IsEqual(ListItem.Property(widget_style),LandscapeTitled)\">Landscape with show title</value>\n        <value condition=\"String.IsEqual(ListItem.Property(widget_style),LandscapeShowArt)\">Landscape with show title and art</value>\n"
+    },
+    {
+      "file": "1080i/Includes_Labels.xml",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "99b78f63f2aaa63bc0481db5fde6718d7149ff26f20406e71111df0de13fc59e"
+      ],
+      "find": "    <variable name=\"Label_Shortcut_Widget_Style\">\n",
+      "with": "    <variable name=\"Label_Shortcut_Widget_Style\">\n        <value condition=\"String.IsEqual(Container(22001).ListItem.Property(widget_style),LandscapeTitled)\">Landscape with show title</value>\n        <value condition=\"String.IsEqual(Container(22001).ListItem.Property(widget_style),LandscapeShowArt)\">Landscape with show title and art</value>\n"
+    },
+    {
+      "file": "1080i/Includes_Images.xml",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "89160017928150f69b39f53d6793f66ec6d8546ee9c6d76cf3d40f520d9fafec"
+      ],
+      "find": "    <variable name=\"Image_Widget_Style\">\n",
+      "with": "    <variable name=\"Image_Landscape_ShowArt\">\n        <value condition=\"!String.IsEmpty(ListItem.Art(tvshow.landscape))\">$INFO[ListItem.Art(tvshow.landscape)]</value>\n        <value condition=\"!String.IsEmpty(ListItem.Art(landscape))\">$INFO[ListItem.Art(landscape)]</value>\n        <value condition=\"!String.IsEmpty(ListItem.Art(season.landscape))\">$INFO[ListItem.Art(season.landscape)]</value>\n        <value condition=\"!String.IsEmpty(ListItem.Art(tvshow.fanart))\">$INFO[ListItem.Art(tvshow.fanart)]</value>\n        <value condition=\"!String.IsEmpty(ListItem.Art(fanart))\">$INFO[ListItem.Art(fanart)]</value>\n        <value>$VAR[Image_Landscape]</value>\n    </variable>\n\n    <variable name=\"Image_Widget_Style\">\n        <value condition=\"String.IsEqual(ListItem.Property(widget_style),LandscapeTitled)\">special://skin/extras/icons/view-landscape.png</value>\n        <value condition=\"String.IsEqual(ListItem.Property(widget_style),LandscapeShowArt)\">special://skin/extras/icons/view-landscape.png</value>\n"
+    },
+    {
+      "file": "1080i/Includes_Actions.xml",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "2434b3f9bfca468171f2913155a44cb426c0e020ed6ad04a85db56116dde246f"
+      ],
+      "find": "&amp;&amp;$LOCALIZE[736]&amp;&amp;True)</value>",
+      "with": "&amp;Landscape with show title=LandscapeTitled&amp;Landscape with show title and art=LandscapeShowArt&amp;&amp;$LOCALIZE[736]&amp;&amp;True)</value>"
+    },
+    {
+      "file": "shortcuts/generator/data/setup/widgets_include_row.xml",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "1c1f7e5b09f8cd1f3533d42acf5cf4ff3a3e302e0ecedfcc47ae5975467fb948"
+      ],
+      "find": "        <rule>\n            <condition>True</condition>\n            <value>List_Landscape_Row</value>\n        </rule>\n",
+      "with": "        <rule>\n            <condition>{item_widget_style}==LandscapeTitled</condition>\n            <value>List_Landscape_Titled_Row</value>\n        </rule>\n        <rule>\n            <condition>{item_widget_style}==LandscapeShowArt</condition>\n            <value>List_Landscape_ShowArt_Row</value>\n        </rule>\n        <rule>\n            <condition>True</condition>\n            <value>List_Landscape_Row</value>\n        </rule>\n"
+    },
+    {
+      "file": "shortcuts/generator/data/setup/widgets_include_wall.xml",
+      "kind": "insert",
+      "count": 1,
+      "contexts": [
+        "23089545d6c7fa6a25137f7fa843b79d3c931344181f1d30d5a1b773b2cc4656"
+      ],
+      "find": "        <rule>\n            <condition>True</condition>\n            <value>List_Landscape_Row</value>\n        </rule>\n",
+      "with": "        <rule>\n            <condition>{item_widget_style}==LandscapeTitled</condition>\n            <value>List_Landscape_Titled_Row</value>\n        </rule>\n        <rule>\n            <condition>{item_widget_style}==LandscapeShowArt</condition>\n            <value>List_Landscape_ShowArt_Row</value>\n        </rule>\n        <rule>\n            <condition>True</condition>\n            <value>List_Landscape_Row</value>\n        </rule>\n"
+    }
+  ]
+}

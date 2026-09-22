@@ -47,7 +47,7 @@ SETTINGS_BUTTON = SETTINGS_ANCHOR + """
 """ % (SETTING, SETTING)
 
 
-def title_edits():
+def title_edits(tree):
     yield INFO, "replace", IMAGE_ANCHOR, IMAGE_ANCHOR.replace(
         '<control type="image">\n',
         '<control type="image">\n                    <visible>!Skin.HasSetting(%s)</visible>\n' % SETTING)
@@ -133,7 +133,7 @@ GENRE_TOGGLE = GENRE_TOGGLE_ANCHOR + """        <include content="Settings_Butto
 """ % (GENRE_SETTING, GENRE_SETTING)
 
 
-def genre_edits():
+def genre_edits(tree):
     yield INFO, "insert", GENRE_ANCHOR, GENRE_BLOCK
     yield INFO, "replace", MPAA_FIND, MPAA_WITH
     yield SKINSET, "insert", GENRE_TOGGLE_ANCHOR, GENRE_TOGGLE
@@ -372,7 +372,7 @@ SKELETON_TOGGLE = SKELETON_TOGGLE_ANCHOR + """
 """ % (SKELETON_SETTING, SKELETON_SETTING, SKELETON_DEBUG, SKELETON_DEBUG, SKELETON_SETTING)
 
 
-def skeleton_edits():
+def skeleton_edits(tree):
     yield EXPRXML, "insert", SKELETON_EXPR_ANCHOR, SKELETON_EXPR
     yield INFO, "insert", OBJECT_PARAM_ANCHOR, OBJECT_PARAM
     for anchor in OBJECT_ANCHORS:
@@ -386,7 +386,7 @@ def skeleton_edits():
     yield SKINSET, "insert", SKELETON_TOGGLE_ANCHOR, SKELETON_TOGGLE
 
 
-def font_edits():
+def font_edits(tree):
     for weight in ("Regular", "Bold"):
         f = "resource://resource.font.robotocjksc/Inter-Unicode-%s.ttf" % weight
         yield FONTXML, "replace", f, f.replace("resource.font.robotocjksc", FONT_ADDON)
@@ -418,7 +418,7 @@ ISO_LANGUAGE_WITH = """    @property
 """
 
 
-def helper_english_metadata_edits():
+def helper_english_metadata_edits(tree):
     yield HELPER_TMDBAPI, "replace", ISO_LANGUAGE_FIND, ISO_LANGUAGE_WITH
 
 
@@ -475,7 +475,7 @@ PLOT_OVERRIDE_WITH = PLOT_OVERRIDE_ANCHOR + (
     ".get('plot') or self.infolabels.get('plot')\n")
 
 
-def helper_translated_plot_edits():
+def helper_translated_plot_edits(tree):
     # 'translations' rides along on the details call every uncached item already
     # makes, so the Hebrew plot costs a bigger response rather than another request.
     # Unconditional rather than behind the existing plot-fallback setting: rows
@@ -507,13 +507,13 @@ HELPER_ART_FIND = '        for artwork_type, artworks in items.items():\n       
 HELPER_ART_WITH = "        for artwork_type, artworks in items.items():\n            if not isinstance(artworks, list):\n                continue  # TMDb mixes a scalar 'id' in with the artwork lists\n            for artwork in artworks:"
 
 
-def helper_artwork_guard_edits():
+def helper_artwork_guard_edits(tree):
     # get_art() is handed TMDb's whole "images" object and iterates every value,
     # but it carries a scalar alongside the lists. The TypeError aborts the item's
     # whole details fetch, so ratings never arrive and the row loads forever.
     yield HELPER_MAPPINGS, "replace", HELPER_ART_FIND, HELPER_ART_WITH
 
-def helper_translated_genres_edits():
+def helper_translated_genres_edits(tree):
     yield HELPER_GENRES, "replace", GENRES_FIND, GENRES_WITH
 
 
@@ -561,13 +561,186 @@ MODULE_WITH = """def get_current_window(get_dialog=True):
 """
 
 
-def module_window_edits():
+def module_window_edits(tree):
     yield MODULE_WINDOW, "replace", MODULE_FIND, MODULE_WITH
+
+LISTSXML = "1080i/Includes_Lists.xml"
+LAYOUTSXML = "1080i/Includes_Layouts.xml"
+WIDGETSXML = "1080i/Includes_Widgets.xml"
+ACTIONSXML = "1080i/Includes_Actions.xml"
+LABELSXML = "1080i/Includes_Labels.xml"
+IMAGESXML = "1080i/Includes_Images.xml"
+GENROW = "shortcuts/generator/data/setup/widgets_include_row.xml"
+GENWALL = "shortcuts/generator/data/setup/widgets_include_wall.xml"
+
+# A widget style is a value stored on the shortcut node, mapped to a row include by one
+# generator rule, named in two label variables and one image variable, and offered in one
+# do_edit option list. That is exactly the set of places jurialmunkey touched to add
+# Placard in 59d791a, and it is the set touched here -- plus the row include itself, the
+# layout it draws with, and the busy placeholder the widget stands up while it loads.
+STYLE_TITLED = "LandscapeTitled"
+STYLE_SHOWART = "LandscapeShowArt"
+STYLE_TITLED_NAME = "Landscape with show title"
+STYLE_SHOWART_NAME = "Landscape with show title and art"
+
+# Plain English rather than a strings.po id: the option names ride inside a RunPlugin()
+# builtin that script.skinvariables splits on '&&' and then unquote_plus()es, so they must
+# not contain '&', '=', '+', '%' or a bracket -- and a numbered string would stake a claim
+# on an id upstream is still handing out one at a time.
+_STYLE_NAMES = ((STYLE_TITLED, STYLE_TITLED_NAME), (STYLE_SHOWART, STYLE_SHOWART_NAME))
+
+
+def _include_block(tree, rel, name):
+    """The verbatim text of one <include name="..."> ... </include> from the tree.
+
+    The two new layouts are upstream's own, with one include name and one label
+    expression changed. Lifting them out of the pristine tree at generation time is what
+    keeps them upstream's own: a 170-line hand transcription is one typo away from a
+    widget that looks almost right.
+    """
+    with open(os.path.join(tree, rel), "rb") as fh:
+        buf = fh.read().decode("utf-8")
+    head = '    <include name="%s">' % name
+    i = buf.index(head)
+    j = buf.index("\n    </include>\n", i) + len("\n    </include>\n")
+    return buf[i:j]
+
+
+def _swap(text, find, with_, count):
+    if text.count(find) != count:
+        raise SystemExit("derive: %r expected %d, found %d" % (find[:60], count, text.count(find)))
+    return text.replace(find, with_)
+
+
+# Layout_Labels hardcodes the item label in all three of its branches -- the textbox, the
+# label control and the detailed InfoCircle heading -- so there is no parameter to pass
+# and a copy is the only additive way in. $VAR resolves per item inside an itemlayout,
+# which is how upstream's own $VAR[Label_Landscape_Lower] and $VAR[Image_Landscape] work.
+SHOWTITLE_LABEL_VAR = """    <variable name="Label_Landscape_ShowTitle">
+        <value condition="!String.IsEmpty(ListItem.TVShowTitle) + !String.IsEmpty(ListItem.Title) + !String.IsEqual(ListItem.DBType,tvshow)">$INFO[ListItem.TVShowTitle]$INFO[ListItem.Title,: ,]</value>
+        <value>$INFO[ListItem.Label]</value>
+    </variable>
+
+"""
+
+# tvshow.landscape first, and deliberately. metadatautils copies the show's landscape down
+# onto the unprefixed key when the episode has none, so on these items 'landscape' is
+# usually the same picture -- but only usually, and a library episode carrying its own
+# landscape would answer with the episode's. season.landscape is a different picture again:
+# on this library The White Lotus has a fanart.tv season card there, not the show's wide
+# art. The episode still, which is what Image_Landscape prefers for an episode, is the one
+# thing this variable must never return, so it is not in the chain at all -- the fallback
+# is reached only by a show with no landscape and no fanart anywhere.
+SHOWART_IMAGE_VAR = """    <variable name="Image_Landscape_ShowArt">
+        <value condition="!String.IsEmpty(ListItem.Art(tvshow.landscape))">$INFO[ListItem.Art(tvshow.landscape)]</value>
+        <value condition="!String.IsEmpty(ListItem.Art(landscape))">$INFO[ListItem.Art(landscape)]</value>
+        <value condition="!String.IsEmpty(ListItem.Art(season.landscape))">$INFO[ListItem.Art(season.landscape)]</value>
+        <value condition="!String.IsEmpty(ListItem.Art(tvshow.fanart))">$INFO[ListItem.Art(tvshow.fanart)]</value>
+        <value condition="!String.IsEmpty(ListItem.Art(fanart))">$INFO[ListItem.Art(fanart)]</value>
+        <value>$VAR[Image_Landscape]</value>
+    </variable>
+
+"""
+
+LABEL_STYLE_ANCHOR = '    <variable name="Label_Widget_Style">\n'
+LABEL_SHORTCUT_STYLE_ANCHOR = '    <variable name="Label_Shortcut_Widget_Style">\n'
+IMAGE_STYLE_ANCHOR = '    <variable name="Image_Widget_Style">\n'
+
+_STYLE_LABEL = '        <value condition="String.IsEqual(%s.Property(widget_style),%s)">%s</value>\n'
+_STYLE_IMAGE = ('        <value condition="String.IsEqual(%s.Property(widget_style),%s)">'
+                'special://skin/extras/icons/view-landscape.png</value>\n')
+
+
+def _style_values(listitem, template, with_name=True):
+    return "".join(
+        (template % (listitem, style, name)) if with_name else (template % (listitem, style))
+        for style, name in _STYLE_NAMES)
+
+
+# Appended to the pairs rather than put in front of them: do_edit preselects on the stored
+# value rather than on position, and a user who has picked neither should still land on
+# the list they know.
+WIDGETSTYLE_TAIL = "&amp;&amp;$LOCALIZE[736]&amp;&amp;True)</value>"
+WIDGETSTYLE_PAIRS = "".join(
+    "&amp;%s=%s" % (name, style) for style, name in _STYLE_NAMES) + WIDGETSTYLE_TAIL
+
+# The catch-all is the last rule in both files and is what upstream inserts ahead of, so
+# anchoring on it puts the new rules where a merged upstream would have put them.
+GENRULE_ANCHOR = ("        <rule>\n"
+                  "            <condition>True</condition>\n"
+                  "            <value>List_Landscape_Row</value>\n"
+                  "        </rule>\n")
+
+GENRULES = "".join(
+    "        <rule>\n"
+    "            <condition>{item_widget_style}==%s</condition>\n"
+    "            <value>List_Landscape_%s_Row</value>\n"
+    "        </rule>\n" % (style, style[len("Landscape"):])
+    for style, _ in _STYLE_NAMES) + GENRULE_ANCHOR
+
+# _Widget_Row stands up Widget_Busy_BlankItems__$PARAM[include] while the widget loads, so
+# a row include with no placeholder of that name leaves an unresolved include in the log
+# and an empty row on screen. Both new rows are landscape-shaped, so both borrow the
+# landscape placeholder whole rather than restating its four bars.
+BUSY_ANCHOR = '    <include name="Widget_Busy_BlankItems__List_Landscape_Row">\n'
+
+BUSY = "".join(
+    '    <include name="Widget_Busy_BlankItems__List_Landscape_%s_Row">\n'
+    "        <include>Widget_Busy_BlankItems__List_Landscape_Row</include>\n"
+    "    </include>\n" % style[len("Landscape"):]
+    for style, _ in _STYLE_NAMES) + BUSY_ANCHOR
+
+LAYOUT_ANCHOR = '    <include name="Layout_Landscape">\n'
+ROW_ANCHOR = '    <include name="List_Landscape_Row">\n'
+
+
+def nextup_edits(tree):
+    labels = _include_block(tree, LAYOUTSXML, "Layout_Labels")
+    labels = _swap(labels, '<include name="Layout_Labels">',
+                   '<include name="Layout_Labels_ShowTitle">', 1)
+    # Five: the two use_label2 overrides, the two plain <label>s they sit above, and the
+    # detailed heading. Label2 keeps its own $INFO -- the ']' in the find excludes it.
+    labels = _swap(labels, "$INFO[$PARAM[listitem].Label]", "$VAR[Label_Landscape_ShowTitle]", 5)
+
+    layout = _include_block(tree, LAYOUTSXML, "Layout_Landscape")
+    layout = _swap(layout, '<include name="Layout_Landscape">',
+                   '<include name="Layout_Landscape_ShowTitle">', 1)
+    layout = _swap(layout, '<include content="Layout_Labels" condition=',
+                   '<include content="Layout_Labels_ShowTitle" condition=', 1)
+
+    row = _include_block(tree, LISTSXML, "List_Landscape_Row")
+    row = _swap(row, '<param name="itemlayout_include">Layout_Landscape</param>',
+                '<param name="itemlayout_include">Layout_Landscape_ShowTitle</param>', 1)
+    # icon spelled out in both rows rather than left to $PARAM[icon] falling through to
+    # the layout default: whether an empty parameter reaches the layout or the default
+    # does is Kodi's business, and neither row should be asking the question.
+    titled = _swap(row, '<include name="List_Landscape_Row">',
+                   '<include name="List_Landscape_Titled_Row">', 1)
+    titled = _swap(titled, '<param name="icon">$PARAM[icon]</param>',
+                   '<param name="icon">$VAR[Image_Landscape]</param>', 1)
+    showart = _swap(row, '<include name="List_Landscape_Row">',
+                    '<include name="List_Landscape_ShowArt_Row">', 1)
+    showart = _swap(showart, '<param name="icon">$PARAM[icon]</param>',
+                    '<param name="icon">$VAR[Image_Landscape_ShowArt]</param>', 1)
+
+    yield LAYOUTSXML, "insert", LAYOUT_ANCHOR, labels + "\n" + layout + "\n" + LAYOUT_ANCHOR
+    yield LISTSXML, "insert", ROW_ANCHOR, titled + "\n" + showart + "\n" + ROW_ANCHOR
+    yield WIDGETSXML, "insert", BUSY_ANCHOR, BUSY
+    yield LABELSXML, "insert", LABEL_STYLE_ANCHOR, \
+        SHOWTITLE_LABEL_VAR + LABEL_STYLE_ANCHOR + _style_values("ListItem", _STYLE_LABEL)
+    yield LABELSXML, "insert", LABEL_SHORTCUT_STYLE_ANCHOR, \
+        LABEL_SHORTCUT_STYLE_ANCHOR + _style_values("Container(22001).ListItem", _STYLE_LABEL)
+    yield IMAGESXML, "insert", IMAGE_STYLE_ANCHOR, \
+        SHOWART_IMAGE_VAR + IMAGE_STYLE_ANCHOR + \
+        _style_values("ListItem", _STYLE_IMAGE, with_name=False)
+    yield ACTIONSXML, "insert", WIDGETSTYLE_TAIL, WIDGETSTYLE_PAIRS
+    yield GENROW, "insert", GENRULE_ANCHOR, GENRULES
+    yield GENWALL, "insert", GENRULE_ANCHOR, GENRULES
 
 
 def build(tree, pid, upstream, absent, gen):
     edits = []
-    for rel, kind, find, with_ in gen():
+    for rel, kind, find, with_ in gen(tree):
         with open(os.path.join(tree, rel), "rb") as fh:
             buf = fh.read()
         n = buf.count(find.encode("utf-8"))
@@ -591,7 +764,7 @@ ART_FIND = "        available_art = _parse_artwork(movie, collection, self.urls,
 ART_WITH = "        available_art = _parse_artwork(movie, collection, self.urls, 'en')"
 
 
-def english_title_edits():
+def english_title_edits(tree):
     # _gather_details() already fetches the untranslated movie unconditionally, for
     # its artwork and as the plot fallback, so preferring its title costs no extra
     # request: with the scraper set to he-IL this gives English titles, Hebrew plots.
@@ -654,13 +827,13 @@ IDAN_RADIO_WITH = _crlf(
 )
 
 
-def idan_tvg_logo_edits():
+def idan_tvg_logo_edits(tree):
     # The my_image branch below is left alone: main.ChangeChannelLogo() stores
     # whatever SaveLogo() returns, which is a bare filename, never a url.
     yield IDAN_IPTV, "replace", IDAN_LOGO_FIND, IDAN_LOGO_WITH
 
 
-def idan_image_url_edits():
+def idan_image_url_edits(tree):
     # GetImageLink is the funnel: fifteen of the image call sites in kan.py go
     # through it, and four of them -- kids episodes, radio series from html,
     # podcasts and podcast episodes -- pass the url unquoted.
@@ -682,6 +855,13 @@ TARGETS = {
          [[EXPRXML, "Exp_TMDbHelper_IsSkeleton"], [EXPRXML, "Exp_TMDbHelper_IsStaleRatings"],
           [INFO, "Info_Meta_Skeleton"], [INFO, 'name="stale"'],
           [SKINSET, SKELETON_SETTING], [SKINSET, SKELETON_DEBUG]], skeleton_edits),
+        ("005-nextup-widget-styles.json", "nextup-widget-styles", "feature request to be offered",
+         [[LAYOUTSXML, "Layout_Landscape_ShowTitle"], [LAYOUTSXML, "Layout_Labels_ShowTitle"],
+          [LISTSXML, "List_Landscape_Titled_Row"], [LISTSXML, "List_Landscape_ShowArt_Row"],
+          [WIDGETSXML, "Widget_Busy_BlankItems__List_Landscape_Titled_Row"],
+          [LABELSXML, "Label_Landscape_ShowTitle"], [IMAGESXML, "Image_Landscape_ShowArt"],
+          [ACTIONSXML, STYLE_TITLED], [GENROW, STYLE_TITLED], [GENWALL, STYLE_TITLED]],
+         nextup_edits),
     ),
     SCRAPER: (
         ("001-english-title.json", "english-title", "PR to be offered to xbmc",
