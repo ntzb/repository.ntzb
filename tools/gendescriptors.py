@@ -580,33 +580,27 @@ GENWALL = "shortcuts/generator/data/setup/widgets_include_wall.xml"
 # layout it draws with, and the busy placeholder the widget stands up while it loads.
 #
 # base, layout to copy (None when the row borrows another style's), art variable to spell
-# into the row when it carries exactly one icon param, and whether a show-art twin is
-# worth offering. Card and Circle are absent on purpose: neither layout draws an item
-# label at all, so "with show title" would have nothing to title. Poster, Flyer, Square
-# and Placard get no show-art twin because their art chains already answer with the season
-# or show poster for an episode -- Image_Poster ranks Art(poster), season.poster,
-# tvshow.poster and an episode carries no bare poster, so the episode still was never what
-# they were showing in the first place.
+# into the row when it carries exactly one icon param, and which twins to offer.
+#
+# Only LandscapeShowArt survives the comparison round. The other seven shapes were built
+# to be looked at side by side and dropped once one won; re-adding any of them is one
+# entry here, since this table drives the rows, the layouts, the busy placeholders, the
+# generator rules, both label variables, the picker icons and the option list.
 _STYLES = (
-    ("Landscape", "Layout_Landscape", "Image_Landscape", True),
-    ("Board", None, "Image_Landscape", True),
-    ("Poster", "Layout_Poster", "Image_Poster", False),
-    ("Flyer", "Layout_Flyer", "Image_Poster", False),
-    ("Square", "Layout_Square", None, False),
-    ("Placard", "Layout_Placard", None, False),
+    ("Landscape", "Layout_Landscape", "Image_Landscape", ("ShowArt",)),
 )
 
-# Board draws with Layout_Landscape and Placard nests Layout_Flyer inside Layout_Placard,
-# so a row can name a layout another entry is responsible for copying.
 _ROW_LAYOUTS = {"Board": ("Layout_Landscape",), "Placard": ("Layout_Placard", "Layout_Flyer")}
+
+
+_TWIN_NAMES = {"Titled": "%s with show title", "ShowArt": "%s with show title and art"}
 
 
 def _styles():
     """(style value, option name, base) for every style offered, in menu order."""
-    for base, _, _, showart in _STYLES:
-        yield base + "Titled", "%s with show title" % base, base
-        if showart:
-            yield base + "ShowArt", "%s with show title and art" % base, base
+    for base, _, _, twins in _STYLES:
+        for twin in twins:
+            yield base + twin, _TWIN_NAMES[twin] % base, base
 
 
 def _include_block(tree, rel, name):
@@ -676,21 +670,38 @@ TWO_LABELS = """                    <control type="group">
 
 """
 
-# Two variables rather than one so each line is measured and truncated on its own. The
-# condition is the same test for "this item belongs to a show" the single-line variable
-# used: both titles present and the item is not the show itself. Anything else -- a movie,
-# a show, a PVR channel -- puts its label on the upper line and leaves the lower one
-# empty, so a style picked for a mixed widget degrades to what it looked like before.
+# Two variables rather than one so each line is measured and truncated on its own.
+#
+# The lower line is the episode number and the episode name, and the number carries the
+# line on its own when there is no name to add. "No name" is two cases. An episode TMDb
+# has no title for can arrive with the field empty, and it can arrive holding TMDb's own
+# placeholder -- the string "Episode 7" -- because TMDb used to synthesise that for
+# untitled episodes and still serves it on records scraped while it did. Neither says
+# anything the number has not already said, so both collapse to "1x07". A show that
+# genuinely titles its episodes "Episode 7" loses nothing worth keeping either.
+#
+# The number itself is $VAR[Label_Plot_Episode_Number], upstream's own formatter, which
+# already zero-pads below ten and answers empty for anything that is not an episode.
+#
+# Anything that is not an episode -- a movie, a show, a PVR channel -- puts its label on
+# the upper line and leaves the lower one empty, so a mixed widget looks as it always did.
+_IS_SHOW_ITEM = ("!String.IsEmpty(ListItem.TVShowTitle) + "
+                 "!String.IsEqual(ListItem.DBType,tvshow)")
+_HAS_NUMBER = "!String.IsEmpty(ListItem.Season) + !String.IsEmpty(ListItem.Episode)"
+_HAS_NAME = "!String.IsEmpty(ListItem.Title) + !String.StartsWith(ListItem.Title,Episode )"
+
 SHOWTITLE_LABEL_VARS = """    <variable name="Label_ShowTitle_Upper">
-        <value condition="!String.IsEmpty(ListItem.TVShowTitle) + !String.IsEmpty(ListItem.Title) + !String.IsEqual(ListItem.DBType,tvshow)">$INFO[ListItem.TVShowTitle,,:]</value>
+        <value condition="%(show)s">$INFO[ListItem.TVShowTitle,,:]</value>
         <value>$INFO[ListItem.Label]</value>
     </variable>
 
     <variable name="Label_ShowTitle_Lower">
-        <value condition="!String.IsEmpty(ListItem.TVShowTitle) + !String.IsEmpty(ListItem.Title) + !String.IsEqual(ListItem.DBType,tvshow)">$INFO[ListItem.Title]</value>
+        <value condition="%(show)s + %(num)s + %(name)s">$VAR[Label_Plot_Episode_Number]$INFO[ListItem.Title, - ,]</value>
+        <value condition="%(show)s + %(num)s">$VAR[Label_Plot_Episode_Number]</value>
+        <value condition="%(show)s + %(name)s">$INFO[ListItem.Title]</value>
     </variable>
 
-"""
+""" % {"show": _IS_SHOW_ITEM, "num": _HAS_NUMBER, "name": _HAS_NAME}
 
 # tvshow.landscape first, and deliberately. metadatautils copies the show's landscape down
 # onto the unprefixed key when the episode has none, so on these items 'landscape' is
@@ -971,12 +982,11 @@ TARGETS = {
           [SKINSET, SKELETON_SETTING], [SKINSET, SKELETON_DEBUG]], skeleton_edits),
         ("005-nextup-widget-styles.json", "nextup-widget-styles", "feature request to be offered",
          [[LAYOUTSXML, "Layout_Labels_ShowTitle"], [LAYOUTSXML, "Layout_Landscape_ShowTitle"],
-          [LAYOUTSXML, "Layout_Placard_ShowTitle"], [LISTSXML, "List_LandscapeTitled_Row"],
-          [LISTSXML, "List_PlacardTitled_Row"],
-          [WIDGETSXML, "Widget_Busy_BlankItems__List_LandscapeTitled_Row"],
+          [LISTSXML, "List_LandscapeShowArt_Row"],
+          [WIDGETSXML, "Widget_Busy_BlankItems__List_LandscapeShowArt_Row"],
           [LABELSXML, "Label_ShowTitle_Upper"], [LABELSXML, "Label_ShowTitle_Lower"],
-          [IMAGESXML, "Image_Landscape_ShowArt"], [ACTIONSXML, "LandscapeTitled"],
-          [GENROW, "LandscapeTitled"], [GENWALL, "LandscapeTitled"]],
+          [IMAGESXML, "Image_Landscape_ShowArt"], [ACTIONSXML, "LandscapeShowArt"],
+          [GENROW, "LandscapeShowArt"], [GENWALL, "LandscapeShowArt"]],
          nextup_edits),
     ),
     SCRAPER: (

@@ -14,32 +14,43 @@ from each upstream release.
 | 002 | Hebrew final forms restored to the Unicode fontset | [robotocjksc#3](https://github.com/jurialmunkey/resource.font.robotocjksc/issues/3), [rsms/inter#903](https://github.com/rsms/inter/issues/903) |
 | 003 | the first genre in the info line, in place of the age rating, behind a skin setting | feature request to be offered |
 | 004 | the stale half of the meta row held back behind a loading placeholder while TMDb Helper fetches, behind a skin setting | feature request to be offered |
-| 005 | widget styles that label the row with the show name above the episode name, and landscape styles that draw the show's wide art | feature request to be offered |
+| 005 | a landscape widget style that labels the row with the show name above the episode number and name, on the show's wide art | feature request to be offered |
 
 Patch 005 exists because a widget labels an episode with the episode title and nothing else, and
 in a *next episodes* widget that is the one field which does not say what the row is. "Special
 Treatments" is a row about The White Lotus, and the only thing on screen that says so is a frame
-grab. So each style that draws an item label gets a **with show title** twin, which puts the show
-name on the first line and the episode name on the second:
+grab. **Landscape with show title and art** puts the show name on the first line, the episode
+number and name on the second, and draws the show's wide art instead of the episode still:
 
-    Amazing Hotels:
-    Shark Tank Down Under...
+    Silo:
+    3x05 - Memory
+
+The number carries the second line on its own when there is no name to add:
+
+    On Standby:
+    1x07
+
+"No name" is two cases. An episode TMDb has no title for can arrive with the field empty, and it
+can arrive holding TMDb's own placeholder, the literal string `Episode 7`, because TMDb used to
+synthesise that for untitled episodes and still serves it on records scraped while it did. Neither
+says anything the number has not already said, so both collapse to the number. A show that
+genuinely titles its episodes `Episode 7` loses nothing worth keeping either. The number is
+`$VAR[Label_Plot_Episode_Number]`, upstream's own formatter, which zero-pads below ten already.
 
 The two lines are two label controls rather than one run of text. Upstream stacks a single control
 there, a textbox when `use_label` is false and a plain label when it is true, and a textbox wraps
 rather than truncates, so a long episode name flowed onto a third line and was clipped with nothing
 to show for it. A label given a width truncates itself, which is where the trailing dots come from;
 Kodi draws three of them and the count is not a skin setting. The focused row scrolls the whole
-episode name past instead, which is what `<scroll>` tied to the focused-layout flag buys. An item
-that is not an episode -- a movie, a show, a PVR channel -- puts its label on the first line and
-leaves the second empty, so a style picked for a mixed widget looks the way it always did.
+line past instead, which is what `<scroll>` tied to the focused-layout flag buys. An item that is
+not an episode -- a movie, a show, a PVR channel -- puts its label on the first line and leaves the
+second empty, so a style picked for a mixed widget looks the way it always did.
 
-**Landscape** and **Board** additionally get a **with show title and art** twin, because those two
-are the styles whose art is the episode still. The other label-bearing styles do not, because their
-art chains already answer with the season or show poster for an episode: `Image_Poster` ranks
-`poster`, `season.poster`, `tvshow.poster`, and an episode carries no bare `poster`. **Card** and
-**Circle** get no twin at all, because neither layout draws an item label, so there would be
-nothing to title. None of the twins replace a stock style; they sit in the same list beside them.
+The style does not replace the stock **Landscape**; it sits in the same list beside it. Seven more
+shapes were built alongside it -- the same split on Poster, Flyer, Square, Placard and Board -- and
+dropped once this one won. Re-adding any of them is one entry in `_STYLES` in
+`tools/gendescriptors.py`, which drives the rows, the layouts, the busy placeholders, the generator
+rules, the picker icons and the option list.
 
 They are picked per widget, where every other widget setting is picked. Skin settings →
 **Customise shortcuts and widgets** (or Settings → **Customise widgets**), pick the menu the widget
