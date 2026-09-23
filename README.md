@@ -16,6 +16,35 @@ from each upstream release.
 | 004 | the stale half of the meta row held back behind a loading placeholder while TMDb Helper fetches, behind a skin setting | feature request to be offered |
 | 005 | a landscape widget style that labels the row with the show name above the episode number and name, on the show's wide art | feature request to be offered |
 
+`plugin.video.nextep` is the one add-on here that is not a patch of somebody else's. It lists the
+episode to play next for every show that has been started, one per show, and it exists to replace
+`script.skin.helper.widgets` in the only role it was filling on this box -- a single widget on
+`?action=next&mediatype=episodes`. Nothing else in the install referenced that add-on, and nothing
+else required `script.skin.helper.service` or `script.module.metadatautils`, so the three of them
+go together.
+
+It answers in about 85ms against a library of 27 shows and 457 episodes, where the add-on it
+replaces took roughly 1.2 seconds. The difference is not tuning. The old one issues one query for
+the shows and then up to four more per show, serially; this one issues three bulk queries in a
+single `executeJSONRPC`, which accepts a request array, and does the per-show reasoning in Python
+over the rows it already has. Asking for episode `art` is deliberately skipped: Kodi repeats all
+thirteen `tvshow.*` and `season.*` keys on every episode row, so one query for show art costs less
+than carrying it on 255 episodes.
+
+There is no background service and no cache, and neither is an oversight. `CDirectoryProvider`
+re-runs a widget's plugin on `OnUpdate`, `OnScanFinished`, `OnCleanFinished`, `OnRemove` and
+`OnRefresh`, with no `plugin://` exception, so marking an episode watched refreshes the widget
+without anything resident to notice. The old add-on needed a service only because it cached, and
+cached only because it was slow. At 85ms for a complete answer the cache has nothing left to buy,
+and the honest invalidation key for one would be the same event that already triggers the requery.
+
+Selection follows the add-on it replaces rather than the simpler rule: the anchor is the most
+recently played episode with a playcount above zero, and the pick is the lowest-numbered unwatched
+episode above it, falling back to the first unwatched episode for a show never started. That
+matters on a library where episodes were watched out of order. One deliberate difference: an
+episode with a resume point is offered ahead of the ordering, which the old add-on could not do
+because its first query only looked at watched episodes.
+
 Patch 005 exists because a widget labels an episode with the episode title and nothing else, and
 in a *next episodes* widget that is the one field which does not say what the row is. "Special
 Treatments" is a row about The White Lotus, and the only thing on screen that says so is a frame

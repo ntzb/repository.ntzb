@@ -1,0 +1,45 @@
+# Next Episodes language file
+# Addon Name: Next Episodes
+# Addon id: plugin.video.nextep
+# Addon Provider: nbs
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Next Episodes\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en_GB\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+# general
+
+msgctxt "#32000"
+msgid "General"
+msgstr ""
+
+msgctxt "#32010"
+msgid "only shows already started"
+msgstr ""
+
+msgctxt "#32011"
+msgid "List a show only once you have watched an episode of it or left one part-way through. Turn this off to also list the first episode of shows you have never started."
+msgstr ""
+
+msgctxt "#32020"
+msgid "include specials"
+msgstr ""
+
+msgctxt "#32021"
+msgid "Consider season 0 episodes when picking what comes next."
+msgstr ""
+
+msgctxt "#32030"
+msgid "maximum number of shows"
+msgstr ""
+
+msgctxt "#32031"
+msgid "How many shows the widget lists at most. A limit= parameter in the widget path overrides this."
+msgstr ""

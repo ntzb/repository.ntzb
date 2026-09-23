@@ -31,12 +31,14 @@ STOCK_NAME = "The Movie Database Python"
 SCRAPER = STOCK + ".ntzb"
 SCRAPER_NAME = "The Movie Database Python (ntzb)"
 IDAN = "plugin.video.idanplus"
+NEXTEP = "plugin.video.nextep"
 BUILD_N = 14
 SCRAPER_BUILD_N = 2
 HELPER_BUILD_N = 1
 MODULE_BUILD_N = 1
 IDAN_BUILD_N = 1
 FONT_VERSION = "1.1.0"
+NEXTEP_VERSION = "1.0.0"
 REPO_VERSION = "1.0.0"
 
 def log(msg):
@@ -192,9 +194,11 @@ def main():
         log("upstream %s -> publishing %s" % (a, b))
 
     font_src = os.path.join(ROOT, "payload", FONT)
+    nextep_src = os.path.join(ROOT, "payload", NEXTEP)
     repo_src = os.path.join(ROOT, "repo", REPO)
     wanted = ((SKIN, ours), (FONT, FONT_VERSION), (REPO, REPO_VERSION), (SCRAPER, sours),
-              (HELPER, hours), (MODULE, mours), (IDAN, iours))
+              (HELPER, hours), (MODULE, mours), (IDAN, iours),
+              (NEXTEP, NEXTEP_VERSION))
 
     # All or nothing, as before: payload edited without a version bump only reaches
     # users on the next publish, so one missing artifact republishes them all.
@@ -238,6 +242,7 @@ def main():
 
     stage(dist, SKIN, ours, tree, tree)
     stage(dist, FONT, FONT_VERSION, font_src, font_src)
+    stage(dist, NEXTEP, NEXTEP_VERSION, nextep_src, nextep_src)
     stage(dist, REPO, REPO_VERSION, repo_src, repo_src)
     stage(dist, SCRAPER, sours, stree, os.path.join(stree, "resources"))
     stage(dist, HELPER, hours, htree, htree)
@@ -251,7 +256,7 @@ def main():
         raise SystemExit("%s: compiled python in the artifact: %r" % (IDAN, compiled))
 
     index = [b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>', b"<addons>"]
-    for src in (tree, font_src, repo_src, stree, htree, mtree, itree):
+    for src in (tree, font_src, nextep_src, repo_src, stree, htree, mtree, itree):
         with open(os.path.join(src, "addon.xml"), "rb") as fh:
             body = fh.read()
         # idanplus ships its addon.xml with CRLF; the index is joined with LF and
