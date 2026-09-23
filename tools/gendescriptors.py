@@ -602,7 +602,7 @@ GENWALL = "shortcuts/generator/data/setup/widgets_include_wall.xml"
 _STYLES = (
     ("LandscapeShowArt", "Landscape with show title and art",
      "Landscape", "Layout_Landscape", "Image_Landscape_ShowArt", {}),
-    ("LandscapeShowArtSmall", "Landscape with show title and art, five per row",
+    ("LandscapeShowArtSmall", "Landscape with show title and art - five per row",
      "Landscape", None, "Image_Landscape_ShowArt",
      {"item_w": "320", "item_h": "180", "itemlayout_w": "360"}),
 )
@@ -616,9 +616,19 @@ DIFFUSE_LINE = '        <param name="diffuse">%s</param>\n'
 _ROW_LAYOUTS = {"Board": ("Layout_Landscape",), "Placard": ("Layout_Placard", "Layout_Flyer")}
 
 
+# The option names ride inside a RunPlugin() builtin. CUtil::SplitParams ends a parameter
+# at any ',' reached outside a bracketed function, so a comma in a name truncates the whole
+# option list and the picker comes up empty. script.skinvariables then splits what is left
+# on '&&' and unquote_plus()es it, which rules out the rest of these.
+_FORBIDDEN = ',&=+%()[]'
+
+
 def _styles():
     """(style value, option name, base) for every style offered, in menu order."""
     for style, name, base, _, _, _ in _STYLES:
+        bad = [c for c in _FORBIDDEN if c in name or c in style]
+        if bad:
+            raise SystemExit("style %r: %r cannot appear in a widget style name" % (name, bad))
         yield style, name, base
 
 

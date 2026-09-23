@@ -132,6 +132,13 @@ and the catch-all is where upstream itself inserts ahead of, which is how Placar
 `Includes_Images.xml`; the one line that is rewritten is the widget style option list in
 `Includes_Actions.xml`, and the new options are appended to its tail.
 
+A style name may not contain a comma, and `tools/gendescriptors.py` refuses to generate one
+that does. The names ride inside a `RunPlugin()` builtin, and `CUtil::SplitParams` ends a parameter
+at any `,` it reaches outside a bracketed function, so one comma truncates the whole option list
+and the style picker comes up empty and resets to default. The same guard rejects `&`, `=`, `+`,
+`%` and brackets, which `script.skinvariables` would mangle when it splits on `&&` and
+`unquote_plus`es what it finds.
+
 The style names are plain English rather than `$LOCALIZE` ids. They ride inside a `RunPlugin()`
 builtin that `script.skinvariables` splits on `&&` and then `unquote_plus`es, so they must avoid
 `&`, `=`, `+` and brackets; and a numbered string would stake a claim on an id that upstream is

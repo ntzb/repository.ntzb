@@ -82,7 +82,7 @@
         "c2a6d2e881d2846b7c550884d39712eee73ecb66db588274c3bd5a41bc38f6a7"
       ],
       "find": "    <variable name=\"Label_Widget_Style\">\n",
-      "with": "    <variable name=\"Label_ShowTitle_Upper\">\n        <value condition=\"!String.IsEmpty(ListItem.TVShowTitle) + !String.IsEqual(ListItem.DBType,tvshow)\">$INFO[ListItem.TVShowTitle,,:]</value>\n        <value>$INFO[ListItem.Label]</value>\n    </variable>\n\n    <variable name=\"Label_ShowTitle_Lower\">\n        <value condition=\"!String.IsEmpty(ListItem.TVShowTitle) + !String.IsEqual(ListItem.DBType,tvshow) + !String.IsEmpty(ListItem.Season) + !String.IsEmpty(ListItem.Episode) + !String.IsEmpty(ListItem.Title) + !String.StartsWith(ListItem.Title,Episode )\">$VAR[Label_Plot_Episode_Number]$INFO[ListItem.Title, - ,]</value>\n        <value condition=\"!String.IsEmpty(ListItem.TVShowTitle) + !String.IsEqual(ListItem.DBType,tvshow) + !String.IsEmpty(ListItem.Season) + !String.IsEmpty(ListItem.Episode)\">$VAR[Label_Plot_Episode_Number]</value>\n        <value condition=\"!String.IsEmpty(ListItem.TVShowTitle) + !String.IsEqual(ListItem.DBType,tvshow) + !String.IsEmpty(ListItem.Title) + !String.StartsWith(ListItem.Title,Episode )\">$INFO[ListItem.Title]</value>\n    </variable>\n\n    <variable name=\"Label_Widget_Style\">\n        <value condition=\"String.IsEqual(ListItem.Property(widget_style),LandscapeShowArt)\">Landscape with show title and art</value>\n        <value condition=\"String.IsEqual(ListItem.Property(widget_style),LandscapeShowArtSmall)\">Landscape with show title and art, five per row</value>\n"
+      "with": "    <variable name=\"Label_ShowTitle_Upper\">\n        <value condition=\"!String.IsEmpty(ListItem.TVShowTitle) + !String.IsEqual(ListItem.DBType,tvshow)\">$INFO[ListItem.TVShowTitle,,:]</value>\n        <value>$INFO[ListItem.Label]</value>\n    </variable>\n\n    <variable name=\"Label_ShowTitle_Lower\">\n        <value condition=\"!String.IsEmpty(ListItem.TVShowTitle) + !String.IsEqual(ListItem.DBType,tvshow) + !String.IsEmpty(ListItem.Season) + !String.IsEmpty(ListItem.Episode) + !String.IsEmpty(ListItem.Title) + !String.StartsWith(ListItem.Title,Episode )\">$VAR[Label_Plot_Episode_Number]$INFO[ListItem.Title, - ,]</value>\n        <value condition=\"!String.IsEmpty(ListItem.TVShowTitle) + !String.IsEqual(ListItem.DBType,tvshow) + !String.IsEmpty(ListItem.Season) + !String.IsEmpty(ListItem.Episode)\">$VAR[Label_Plot_Episode_Number]</value>\n        <value condition=\"!String.IsEmpty(ListItem.TVShowTitle) + !String.IsEqual(ListItem.DBType,tvshow) + !String.IsEmpty(ListItem.Title) + !String.StartsWith(ListItem.Title,Episode )\">$INFO[ListItem.Title]</value>\n    </variable>\n\n    <variable name=\"Label_Widget_Style\">\n        <value condition=\"String.IsEqual(ListItem.Property(widget_style),LandscapeShowArt)\">Landscape with show title and art</value>\n        <value condition=\"String.IsEqual(ListItem.Property(widget_style),LandscapeShowArtSmall)\">Landscape with show title and art - five per row</value>\n"
     },
     {
       "file": "1080i/Includes_Labels.xml",
@@ -92,7 +92,7 @@
         "99b78f63f2aaa63bc0481db5fde6718d7149ff26f20406e71111df0de13fc59e"
       ],
       "find": "    <variable name=\"Label_Shortcut_Widget_Style\">\n",
-      "with": "    <variable name=\"Label_Shortcut_Widget_Style\">\n        <value condition=\"String.IsEqual(Container(22001).ListItem.Property(widget_style),LandscapeShowArt)\">Landscape with show title and art</value>\n        <value condition=\"String.IsEqual(Container(22001).ListItem.Property(widget_style),LandscapeShowArtSmall)\">Landscape with show title and art, five per row</value>\n"
+      "with": "    <variable name=\"Label_Shortcut_Widget_Style\">\n        <value condition=\"String.IsEqual(Container(22001).ListItem.Property(widget_style),LandscapeShowArt)\">Landscape with show title and art</value>\n        <value condition=\"String.IsEqual(Container(22001).ListItem.Property(widget_style),LandscapeShowArtSmall)\">Landscape with show title and art - five per row</value>\n"
     },
     {
       "file": "1080i/Includes_Images.xml",
@@ -112,7 +112,7 @@
         "2434b3f9bfca468171f2913155a44cb426c0e020ed6ad04a85db56116dde246f"
       ],
       "find": "&amp;&amp;$LOCALIZE[736]&amp;&amp;True)</value>",
-      "with": "&amp;Landscape with show title and art=LandscapeShowArt&amp;Landscape with show title and art, five per row=LandscapeShowArtSmall&amp;&amp;$LOCALIZE[736]&amp;&amp;True)</value>"
+      "with": "&amp;Landscape with show title and art=LandscapeShowArt&amp;Landscape with show title and art - five per row=LandscapeShowArtSmall&amp;&amp;$LOCALIZE[736]&amp;&amp;True)</value>"
     },
     {
       "file": "shortcuts/generator/data/setup/widgets_include_row.xml",
