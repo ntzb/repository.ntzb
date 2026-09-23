@@ -579,28 +579,47 @@ GENWALL = "shortcuts/generator/data/setup/widgets_include_wall.xml"
 # Placard in 59d791a, and it is the set touched here -- plus the row include itself, the
 # layout it draws with, and the busy placeholder the widget stands up while it loads.
 #
-# base, layout to copy (None when the row borrows another style's), art variable to spell
-# into the row when it carries exactly one icon param, and which twins to offer.
+# One entry per style offered: the value stored on the shortcut node, the option name in
+# the picker, the base row and layout it copies, the art variable spelled into the row,
+# and any row parameters overridden on the copy.
 #
-# Only LandscapeShowArt survives the comparison round. The other seven shapes were built
-# to be looked at side by side and dropped once one won; re-adding any of them is one
-# entry here, since this table drives the rows, the layouts, the busy placeholders, the
-# generator rules, both label variables, the picker icons and the option list.
+# A widget style is a value on the shortcut node, mapped to a row include by one generator
+# rule, named in two label variables and one image variable, and offered in one do_edit
+# option list. That is exactly the set of places jurialmunkey touched to add Placard in
+# 59d791a, plus the row include itself, the layout it draws with, and the busy placeholder
+# the widget stands up while it loads.
+#
+# The five-per-row variant is the same layout at 360 pitch instead of 450, which is 1800
+# divided five ways rather than four; every stock pitch in Includes_Constants.xml is 1800
+# over a whole number and this keeps that. item_h follows item_w at 16:9, the diffuse mask
+# moves to the nearest stock landscape size, and itemlayout_h is deliberately left alone
+# so the two label lines keep exactly the room they have at four per row.
+#
+# Measured against this library before it was built: at 320px roughly one line in five is
+# too long to fit, against one in fourteen at 410px. Rearranging the two lines does not
+# recover it -- the long show names and the long episode titles are not the same shows, so
+# moving the episode number up trades two broken first lines for one saved second line.
 _STYLES = (
-    ("Landscape", "Layout_Landscape", "Image_Landscape", ("ShowArt",)),
+    ("LandscapeShowArt", "Landscape with show title and art",
+     "Landscape", "Layout_Landscape", "Image_Landscape_ShowArt", {}),
+    ("LandscapeShowArtSmall", "Landscape with show title and art, five per row",
+     "Landscape", None, "Image_Landscape_ShowArt",
+     {"item_w": "320", "item_h": "180", "itemlayout_w": "360"}),
 )
+
+# The diffuse mask is sized per shape in the stock media, so the narrower cell takes the
+# nearest one rather than stretching the 410-wide mask over a 320-wide image.
+SMALL_DIFFUSE = "diffuse/landscape_w356_h200.png"
+CONTROL_LINE = '        <param name="control">fixedlist</param>\n'
+DIFFUSE_LINE = '        <param name="diffuse">%s</param>\n'
 
 _ROW_LAYOUTS = {"Board": ("Layout_Landscape",), "Placard": ("Layout_Placard", "Layout_Flyer")}
 
 
-_TWIN_NAMES = {"Titled": "%s with show title", "ShowArt": "%s with show title and art"}
-
-
 def _styles():
     """(style value, option name, base) for every style offered, in menu order."""
-    for base, _, _, twins in _STYLES:
-        for twin in twins:
-            yield base + twin, _TWIN_NAMES[twin] % base, base
+    for style, name, base, _, _, _ in _STYLES:
+        yield style, name, base
 
 
 def _include_block(tree, rel, name):
@@ -812,7 +831,7 @@ def _labels_copy(tree):
 
 def nextup_edits(tree):
     layouts = [_labels_copy(tree)]
-    for base, layout, _, _ in _STYLES:
+    for _, _, _, layout, _, _ in _STYLES:
         if not layout:
             continue
         text = _include_block(tree, LAYOUTSXML, layout)
@@ -828,25 +847,26 @@ def nextup_edits(tree):
                      '                    <param name="selected">$PARAM[selected]</param>\n', 1)
         layouts.append(text)
 
-    art_for = dict((base, art) for base, _, art, _ in _STYLES)
     rows = []
-    for style, _, base in _styles():
+    for style, _, base, _, art, overrides in _STYLES:
         row = _include_block(tree, LISTSXML, "List_%s_Row" % base)
         row = _swap(row, '<include name="List_%s_Row">' % base,
                     '<include name="List_%s_Row">' % style, 1)
         for layout in _ROW_LAYOUTS.get(base, ("Layout_%s" % base,)):
             row = _swap(row, '<param name="itemlayout_include">%s</param>' % layout,
                         '<param name="itemlayout_include">%s_ShowTitle</param>' % layout, 1)
-        art = art_for[base]
-        if art:
-            # Spelled out rather than left to $PARAM[icon] falling through to the layout
-            # default: whether an empty parameter reaches the layout or the default does
-            # is Kodi's business, and no row should be asking the question. Rows carrying
-            # no icon param, or two of them because they nest a second layout, are left
-            # alone -- there is no single answer to spell there.
-            row = _swap(row, '<param name="icon">$PARAM[icon]</param>',
-                        '<param name="icon">$VAR[%s]</param>'
-                        % (art + "_ShowArt" if style.endswith("ShowArt") else art), 1)
+        # Spelled out rather than left to $PARAM[icon] falling through to the layout
+        # default: whether an empty parameter reaches the layout or the default does is
+        # Kodi's business, and no row should be asking the question.
+        row = _swap(row, '<param name="icon">$PARAM[icon]</param>',
+                    '<param name="icon">$VAR[%s]</param>' % art, 1)
+        for name, value in sorted(overrides.items()):
+            old = '<param name="%s">view_%s_%s</param>' % (
+                name, "poster" if name == "itemlayout_h" else base.lower(), name)
+            row = _swap(row, old, '<param name="%s">%s</param>' % (name, value), 1)
+        if overrides:
+            row = _swap(row, CONTROL_LINE,
+                        DIFFUSE_LINE % SMALL_DIFFUSE + CONTROL_LINE, 1)
         rows.append(row)
 
     yield LAYOUTSXML, "insert", LAYOUT_ANCHOR, "\n".join(layouts) + "\n" + LAYOUT_ANCHOR

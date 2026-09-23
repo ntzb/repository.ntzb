@@ -46,7 +46,20 @@ line past instead, which is what `<scroll>` tied to the focused-layout flag buys
 not an episode -- a movie, a show, a PVR channel -- puts its label on the first line and leaves the
 second empty, so a style picked for a mixed widget looks the way it always did.
 
-The style does not replace the stock **Landscape**; it sits in the same list beside it. Seven more
+A second entry, **Landscape with show title and art, five per row**, is the same style at 360
+pitch instead of 450 -- 1800 divided five ways rather than four, which is how every stock pitch in
+`Includes_Constants.xml` is derived. `item_h` follows `item_w` at 16:9, the diffuse mask moves to
+the nearest stock landscape size, and `itemlayout_h` is left alone so the two label lines keep
+exactly the room they have at four per row.
+
+It fits less text, and the amount was measured before it was built rather than guessed. Against
+this library, at 320px roughly one line in five is too long for its cell, against one in fourteen
+at 410px. Rearranging the two lines does not recover it: the long show names and the long episode
+titles are not the same shows, so moving the episode number up to the first line trades two broken
+first lines for one saved second line and comes out worse. The focused row scrolls, so a truncated
+line is never permanently hidden.
+
+Neither style replaces the stock **Landscape**; both sit in the same list beside it. Seven more
 shapes were built alongside it -- the same split on Poster, Flyer, Square, Placard and Board -- and
 dropped once this one won. Re-adding any of them is one entry in `_STYLES` in
 `tools/gendescriptors.py`, which drives the rows, the layouts, the busy placeholders, the generator
