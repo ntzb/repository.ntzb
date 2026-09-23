@@ -578,25 +578,44 @@ GENWALL = "shortcuts/generator/data/setup/widgets_include_wall.xml"
 # do_edit option list. That is exactly the set of places jurialmunkey touched to add
 # Placard in 59d791a, and it is the set touched here -- plus the row include itself, the
 # layout it draws with, and the busy placeholder the widget stands up while it loads.
-STYLE_TITLED = "LandscapeTitled"
-STYLE_SHOWART = "LandscapeShowArt"
-STYLE_TITLED_NAME = "Landscape with show title"
-STYLE_SHOWART_NAME = "Landscape with show title and art"
+#
+# base, layout to copy (None when the row borrows another style's), art variable to spell
+# into the row when it carries exactly one icon param, and whether a show-art twin is
+# worth offering. Card and Circle are absent on purpose: neither layout draws an item
+# label at all, so "with show title" would have nothing to title. Poster, Flyer, Square
+# and Placard get no show-art twin because their art chains already answer with the season
+# or show poster for an episode -- Image_Poster ranks Art(poster), season.poster,
+# tvshow.poster and an episode carries no bare poster, so the episode still was never what
+# they were showing in the first place.
+_STYLES = (
+    ("Landscape", "Layout_Landscape", "Image_Landscape", True),
+    ("Board", None, "Image_Landscape", True),
+    ("Poster", "Layout_Poster", "Image_Poster", False),
+    ("Flyer", "Layout_Flyer", "Image_Poster", False),
+    ("Square", "Layout_Square", None, False),
+    ("Placard", "Layout_Placard", None, False),
+)
 
-# Plain English rather than a strings.po id: the option names ride inside a RunPlugin()
-# builtin that script.skinvariables splits on '&&' and then unquote_plus()es, so they must
-# not contain '&', '=', '+', '%' or a bracket -- and a numbered string would stake a claim
-# on an id upstream is still handing out one at a time.
-_STYLE_NAMES = ((STYLE_TITLED, STYLE_TITLED_NAME), (STYLE_SHOWART, STYLE_SHOWART_NAME))
+# Board draws with Layout_Landscape and Placard nests Layout_Flyer inside Layout_Placard,
+# so a row can name a layout another entry is responsible for copying.
+_ROW_LAYOUTS = {"Board": ("Layout_Landscape",), "Placard": ("Layout_Placard", "Layout_Flyer")}
+
+
+def _styles():
+    """(style value, option name, base) for every style offered, in menu order."""
+    for base, _, _, showart in _STYLES:
+        yield base + "Titled", "%s with show title" % base, base
+        if showart:
+            yield base + "ShowArt", "%s with show title and art" % base, base
 
 
 def _include_block(tree, rel, name):
     """The verbatim text of one <include name="..."> ... </include> from the tree.
 
-    The two new layouts are upstream's own, with one include name and one label
-    expression changed. Lifting them out of the pristine tree at generation time is what
-    keeps them upstream's own: a 170-line hand transcription is one typo away from a
-    widget that looks almost right.
+    The copied layouts and rows are upstream's own, with include names and one label
+    control changed. Lifting them out of the pristine tree at generation time is what
+    keeps them upstream's own: a hand transcription is one typo away from a widget that
+    looks almost right.
     """
     with open(os.path.join(tree, rel), "rb") as fh:
         buf = fh.read().decode("utf-8")
@@ -612,13 +631,63 @@ def _swap(text, find, with_, count):
     return text.replace(find, with_)
 
 
-# Layout_Labels hardcodes the item label in all three of its branches -- the textbox, the
-# label control and the detailed InfoCircle heading -- so there is no parameter to pass
-# and a copy is the only additive way in. $VAR resolves per item inside an itemlayout,
-# which is how upstream's own $VAR[Label_Landscape_Lower] and $VAR[Image_Landscape] work.
-SHOWTITLE_LABEL_VAR = """    <variable name="Label_Landscape_ShowTitle">
-        <value condition="!String.IsEmpty(ListItem.TVShowTitle) + !String.IsEmpty(ListItem.Title) + !String.IsEqual(ListItem.DBType,tvshow)">$INFO[ListItem.TVShowTitle]$INFO[ListItem.Title,: ,]</value>
+def _span(text, start, end):
+    """The text from `start` up to the following `end`."""
+    i = text.index(start)
+    return text[i:text.index(end, i)]
+
+
+# Upstream stacks one control in the 80px label group: a textbox when use_label is false,
+# a plain label when it is true. Both render the whole label as one run of text, and a
+# textbox wraps rather than truncates, so a long episode name flowed onto a third line and
+# was clipped with nothing to show for it. Two labels of their own give the show name a
+# line and the episode name a line, and a label with a width truncates itself.
+#
+# scroll is tied to $PARAM[selected], Kodi's focusedlayout flag: the focused row scrolls
+# the whole episode name past, every other row truncates. Upstream's Layout_Labels is
+# never passed selected -- Layout_Landscape and its siblings keep it to themselves for the
+# text colour -- so the copied layouts add the pass-through.
+TWO_LABELS = """                    <control type="group">
+                        <top>$PARAM[textbox_offset_y]</top>
+                        <visible>![$PARAM[include_detailed_labels]]</visible>
+
+                        <control type="label">
+                            <width>$PARAM[item_w]</width>
+                            <height>33</height>
+                            <font>font_mini</font>
+                            <label>$VAR[Label_ShowTitle_Upper]</label>
+                            <align>left</align>
+                            <include condition="$PARAM[selected]">Color_SelectedText</include>
+                            <textcolor>main_fg_70</textcolor>
+                        </control>
+
+                        <control type="label">
+                            <top>33</top>
+                            <width>$PARAM[item_w]</width>
+                            <height>33</height>
+                            <font>font_mini</font>
+                            <label>$VAR[Label_ShowTitle_Lower]</label>
+                            <align>left</align>
+                            <scroll>$PARAM[selected]</scroll>
+                            <include condition="$PARAM[selected]">Color_SelectedText</include>
+                            <textcolor>main_fg_70</textcolor>
+                        </control>
+                    </control>
+
+"""
+
+# Two variables rather than one so each line is measured and truncated on its own. The
+# condition is the same test for "this item belongs to a show" the single-line variable
+# used: both titles present and the item is not the show itself. Anything else -- a movie,
+# a show, a PVR channel -- puts its label on the upper line and leaves the lower one
+# empty, so a style picked for a mixed widget degrades to what it looked like before.
+SHOWTITLE_LABEL_VARS = """    <variable name="Label_ShowTitle_Upper">
+        <value condition="!String.IsEmpty(ListItem.TVShowTitle) + !String.IsEmpty(ListItem.Title) + !String.IsEqual(ListItem.DBType,tvshow)">$INFO[ListItem.TVShowTitle,,:]</value>
         <value>$INFO[ListItem.Label]</value>
+    </variable>
+
+    <variable name="Label_ShowTitle_Lower">
+        <value condition="!String.IsEmpty(ListItem.TVShowTitle) + !String.IsEmpty(ListItem.Title) + !String.IsEqual(ListItem.DBType,tvshow)">$INFO[ListItem.Title]</value>
     </variable>
 
 """
@@ -647,22 +716,30 @@ LABEL_SHORTCUT_STYLE_ANCHOR = '    <variable name="Label_Shortcut_Widget_Style">
 IMAGE_STYLE_ANCHOR = '    <variable name="Image_Widget_Style">\n'
 
 _STYLE_LABEL = '        <value condition="String.IsEqual(%s.Property(widget_style),%s)">%s</value>\n'
-_STYLE_IMAGE = ('        <value condition="String.IsEqual(%s.Property(widget_style),%s)">'
-                'special://skin/extras/icons/view-landscape.png</value>\n')
+_STYLE_IMAGE = ('        <value condition="String.IsEqual(ListItem.Property(widget_style),%s)">'
+                'special://skin/extras/icons/%s.png</value>\n')
+
+# The icon beside the style name in the picker. Upstream has one per shape, so each new
+# style borrows the one its base already uses rather than inventing artwork.
+_STYLE_ICONS = {"Landscape": "view-landscape", "Board": "window-maximize-regular",
+                "Poster": "view-poster", "Flyer": "window-maximize-regular",
+                "Square": "view-square", "Placard": "window-maximize-regular"}
 
 
-def _style_values(listitem, template, with_name=True):
-    return "".join(
-        (template % (listitem, style, name)) if with_name else (template % (listitem, style))
-        for style, name in _STYLE_NAMES)
+def _style_labels(listitem):
+    return "".join(_STYLE_LABEL % (listitem, style, name) for style, name, _ in _styles())
+
+
+def _style_images():
+    return "".join(_STYLE_IMAGE % (style, _STYLE_ICONS[base]) for style, _, base in _styles())
 
 
 # Appended to the pairs rather than put in front of them: do_edit preselects on the stored
-# value rather than on position, and a user who has picked neither should still land on
-# the list they know.
+# value rather than on position, and a user who has picked none of these should still land
+# on the list they know.
 WIDGETSTYLE_TAIL = "&amp;&amp;$LOCALIZE[736]&amp;&amp;True)</value>"
 WIDGETSTYLE_PAIRS = "".join(
-    "&amp;%s=%s" % (name, style) for style, name in _STYLE_NAMES) + WIDGETSTYLE_TAIL
+    "&amp;%s=%s" % (name, style) for style, name, _ in _styles()) + WIDGETSTYLE_TAIL
 
 # The catch-all is the last rule in both files and is what upstream inserts ahead of, so
 # anchoring on it puts the new rules where a merged upstream would have put them.
@@ -674,65 +751,102 @@ GENRULE_ANCHOR = ("        <rule>\n"
 GENRULES = "".join(
     "        <rule>\n"
     "            <condition>{item_widget_style}==%s</condition>\n"
-    "            <value>List_Landscape_%s_Row</value>\n"
-    "        </rule>\n" % (style, style[len("Landscape"):])
-    for style, _ in _STYLE_NAMES) + GENRULE_ANCHOR
+    "            <value>List_%s_Row</value>\n"
+    "        </rule>\n" % (style, style)
+    for style, _, _ in _styles()) + GENRULE_ANCHOR
 
 # _Widget_Row stands up Widget_Busy_BlankItems__$PARAM[include] while the widget loads, so
 # a row include with no placeholder of that name leaves an unresolved include in the log
-# and an empty row on screen. Both new rows are landscape-shaped, so both borrow the
-# landscape placeholder whole rather than restating its four bars.
+# and an empty row on screen. Every new row keeps its base's shape, so each borrows that
+# base's placeholder whole rather than restating its bars.
 BUSY_ANCHOR = '    <include name="Widget_Busy_BlankItems__List_Landscape_Row">\n'
 
 BUSY = "".join(
-    '    <include name="Widget_Busy_BlankItems__List_Landscape_%s_Row">\n'
-    "        <include>Widget_Busy_BlankItems__List_Landscape_Row</include>\n"
-    "    </include>\n" % style[len("Landscape"):]
-    for style, _ in _STYLE_NAMES) + BUSY_ANCHOR
+    '    <include name="Widget_Busy_BlankItems__List_%s_Row">\n'
+    "        <include>Widget_Busy_BlankItems__List_%s_Row</include>\n"
+    "    </include>\n" % (style, base)
+    for style, _, base in _styles()) + BUSY_ANCHOR
 
 LAYOUT_ANCHOR = '    <include name="Layout_Landscape">\n'
 ROW_ANCHOR = '    <include name="List_Landscape_Row">\n'
 
+LABELS_BRANCH_HEAD = ('                    <include content="Object_Control" '
+                      'condition="![$PARAM[include_detailed_labels]] + ![$PARAM[use_label]]">')
+LABELS_BRANCH_END = '                    <include content="Object_InfoCircle_Text_Top"'
 
-def nextup_edits(tree):
+
+def _labels_copy(tree):
+    """Layout_Labels with its single label control replaced by two stacked ones.
+
+    Layout_Labels hardcodes the item label in every branch, so there is no parameter to
+    pass and a copy is the only additive way in. $VAR resolves per item inside an
+    itemlayout, which is how upstream's own $VAR[Label_Landscape_Lower] already works.
+    """
     labels = _include_block(tree, LAYOUTSXML, "Layout_Labels")
     labels = _swap(labels, '<include name="Layout_Labels">',
                    '<include name="Layout_Labels_ShowTitle">', 1)
-    # Five: the two use_label2 overrides, the two plain <label>s they sit above, and the
-    # detailed heading. Label2 keeps its own $INFO -- the ']' in the find excludes it.
-    labels = _swap(labels, "$INFO[$PARAM[listitem].Label]", "$VAR[Label_Landscape_ShowTitle]", 5)
+    # The labels need a width to truncate against. Upstream sizes the group off left/right
+    # and never needs item_w here, so the copy declares it with the landscape cell width
+    # as the default for any caller that forgets.
+    labels = _swap(labels, '        <param name="textbox_offset_y">7</param>\n',
+                   '        <param name="textbox_offset_y">7</param>\n'
+                   '        <param name="item_w">410</param>\n', 1)
+    # Both Object_Control branches go, from the first of them to the detailed heading that
+    # follows. The detailed branch below it is left exactly as upstream wrote it.
+    old = _span(labels, LABELS_BRANCH_HEAD, LABELS_BRANCH_END)
+    if old.count('<include content="Object_Control"') != 2:
+        raise SystemExit("derive: Layout_Labels no longer has two label branches")
+    return labels.replace(old, TWO_LABELS)
 
-    layout = _include_block(tree, LAYOUTSXML, "Layout_Landscape")
-    layout = _swap(layout, '<include name="Layout_Landscape">',
-                   '<include name="Layout_Landscape_ShowTitle">', 1)
-    layout = _swap(layout, '<include content="Layout_Labels" condition=',
-                   '<include content="Layout_Labels_ShowTitle" condition=', 1)
 
-    row = _include_block(tree, LISTSXML, "List_Landscape_Row")
-    row = _swap(row, '<param name="itemlayout_include">Layout_Landscape</param>',
-                '<param name="itemlayout_include">Layout_Landscape_ShowTitle</param>', 1)
-    # icon spelled out in both rows rather than left to $PARAM[icon] falling through to
-    # the layout default: whether an empty parameter reaches the layout or the default
-    # does is Kodi's business, and neither row should be asking the question.
-    titled = _swap(row, '<include name="List_Landscape_Row">',
-                   '<include name="List_Landscape_Titled_Row">', 1)
-    titled = _swap(titled, '<param name="icon">$PARAM[icon]</param>',
-                   '<param name="icon">$VAR[Image_Landscape]</param>', 1)
-    showart = _swap(row, '<include name="List_Landscape_Row">',
-                    '<include name="List_Landscape_ShowArt_Row">', 1)
-    showart = _swap(showart, '<param name="icon">$PARAM[icon]</param>',
-                    '<param name="icon">$VAR[Image_Landscape_ShowArt]</param>', 1)
+def nextup_edits(tree):
+    layouts = [_labels_copy(tree)]
+    for base, layout, _, _ in _STYLES:
+        if not layout:
+            continue
+        text = _include_block(tree, LAYOUTSXML, layout)
+        text = _swap(text, '<include name="%s">' % layout,
+                     '<include name="%s_ShowTitle">' % layout, 1)
+        text = _swap(text, '<include content="Layout_Labels"',
+                     '<include content="Layout_Labels_ShowTitle"', 1)
+        # selected and item_w have to reach the labels; upstream's call site passes
+        # neither, because upstream's labels have no use for either.
+        text = _swap(text, '                    <param name="item_h">$PARAM[item_h]</param>\n',
+                     '                    <param name="item_h">$PARAM[item_h]</param>\n'
+                     '                    <param name="item_w">$PARAM[item_w]</param>\n'
+                     '                    <param name="selected">$PARAM[selected]</param>\n', 1)
+        layouts.append(text)
 
-    yield LAYOUTSXML, "insert", LAYOUT_ANCHOR, labels + "\n" + layout + "\n" + LAYOUT_ANCHOR
-    yield LISTSXML, "insert", ROW_ANCHOR, titled + "\n" + showart + "\n" + ROW_ANCHOR
+    art_for = dict((base, art) for base, _, art, _ in _STYLES)
+    rows = []
+    for style, _, base in _styles():
+        row = _include_block(tree, LISTSXML, "List_%s_Row" % base)
+        row = _swap(row, '<include name="List_%s_Row">' % base,
+                    '<include name="List_%s_Row">' % style, 1)
+        for layout in _ROW_LAYOUTS.get(base, ("Layout_%s" % base,)):
+            row = _swap(row, '<param name="itemlayout_include">%s</param>' % layout,
+                        '<param name="itemlayout_include">%s_ShowTitle</param>' % layout, 1)
+        art = art_for[base]
+        if art:
+            # Spelled out rather than left to $PARAM[icon] falling through to the layout
+            # default: whether an empty parameter reaches the layout or the default does
+            # is Kodi's business, and no row should be asking the question. Rows carrying
+            # no icon param, or two of them because they nest a second layout, are left
+            # alone -- there is no single answer to spell there.
+            row = _swap(row, '<param name="icon">$PARAM[icon]</param>',
+                        '<param name="icon">$VAR[%s]</param>'
+                        % (art + "_ShowArt" if style.endswith("ShowArt") else art), 1)
+        rows.append(row)
+
+    yield LAYOUTSXML, "insert", LAYOUT_ANCHOR, "\n".join(layouts) + "\n" + LAYOUT_ANCHOR
+    yield LISTSXML, "insert", ROW_ANCHOR, "\n".join(rows) + "\n" + ROW_ANCHOR
     yield WIDGETSXML, "insert", BUSY_ANCHOR, BUSY
     yield LABELSXML, "insert", LABEL_STYLE_ANCHOR, \
-        SHOWTITLE_LABEL_VAR + LABEL_STYLE_ANCHOR + _style_values("ListItem", _STYLE_LABEL)
+        SHOWTITLE_LABEL_VARS + LABEL_STYLE_ANCHOR + _style_labels("ListItem")
     yield LABELSXML, "insert", LABEL_SHORTCUT_STYLE_ANCHOR, \
-        LABEL_SHORTCUT_STYLE_ANCHOR + _style_values("Container(22001).ListItem", _STYLE_LABEL)
-    yield IMAGESXML, "insert", IMAGE_STYLE_ANCHOR, \
-        SHOWART_IMAGE_VAR + IMAGE_STYLE_ANCHOR + \
-        _style_values("ListItem", _STYLE_IMAGE, with_name=False)
+        LABEL_SHORTCUT_STYLE_ANCHOR + _style_labels("Container(22001).ListItem")
+    yield IMAGESXML, "insert", IMAGE_STYLE_ANCHOR, SHOWART_IMAGE_VAR + IMAGE_STYLE_ANCHOR + \
+        _style_images()
     yield ACTIONSXML, "insert", WIDGETSTYLE_TAIL, WIDGETSTYLE_PAIRS
     yield GENROW, "insert", GENRULE_ANCHOR, GENRULES
     yield GENWALL, "insert", GENRULE_ANCHOR, GENRULES
@@ -856,11 +970,13 @@ TARGETS = {
           [INFO, "Info_Meta_Skeleton"], [INFO, 'name="stale"'],
           [SKINSET, SKELETON_SETTING], [SKINSET, SKELETON_DEBUG]], skeleton_edits),
         ("005-nextup-widget-styles.json", "nextup-widget-styles", "feature request to be offered",
-         [[LAYOUTSXML, "Layout_Landscape_ShowTitle"], [LAYOUTSXML, "Layout_Labels_ShowTitle"],
-          [LISTSXML, "List_Landscape_Titled_Row"], [LISTSXML, "List_Landscape_ShowArt_Row"],
-          [WIDGETSXML, "Widget_Busy_BlankItems__List_Landscape_Titled_Row"],
-          [LABELSXML, "Label_Landscape_ShowTitle"], [IMAGESXML, "Image_Landscape_ShowArt"],
-          [ACTIONSXML, STYLE_TITLED], [GENROW, STYLE_TITLED], [GENWALL, STYLE_TITLED]],
+         [[LAYOUTSXML, "Layout_Labels_ShowTitle"], [LAYOUTSXML, "Layout_Landscape_ShowTitle"],
+          [LAYOUTSXML, "Layout_Placard_ShowTitle"], [LISTSXML, "List_LandscapeTitled_Row"],
+          [LISTSXML, "List_PlacardTitled_Row"],
+          [WIDGETSXML, "Widget_Busy_BlankItems__List_LandscapeTitled_Row"],
+          [LABELSXML, "Label_ShowTitle_Upper"], [LABELSXML, "Label_ShowTitle_Lower"],
+          [IMAGESXML, "Image_Landscape_ShowArt"], [ACTIONSXML, "LandscapeTitled"],
+          [GENROW, "LandscapeTitled"], [GENWALL, "LandscapeTitled"]],
          nextup_edits),
     ),
     SCRAPER: (

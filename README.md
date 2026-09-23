@@ -14,20 +14,37 @@ from each upstream release.
 | 002 | Hebrew final forms restored to the Unicode fontset | [robotocjksc#3](https://github.com/jurialmunkey/resource.font.robotocjksc/issues/3), [rsms/inter#903](https://github.com/rsms/inter/issues/903) |
 | 003 | the first genre in the info line, in place of the age rating, behind a skin setting | feature request to be offered |
 | 004 | the stale half of the meta row held back behind a loading placeholder while TMDb Helper fetches, behind a skin setting | feature request to be offered |
-| 005 | two more landscape widget styles, labelling the row `Show: Episode`, one of them on the show's wide art | feature request to be offered |
+| 005 | widget styles that label the row with the show name above the episode name, and landscape styles that draw the show's wide art | feature request to be offered |
 
-Patch 005 exists because the landscape widget labels an episode with the episode title and nothing
-else, and in a *next episodes* widget that is the one field which does not say what the row is.
-"Special Treatments" is a row about The White Lotus, and the only thing on screen that says so is a
-frame grab. So two more landscape styles are added beside the stock one, both labelling the row
-`Show: Episode`: **Landscape with show title** keeps the episode still, and **Landscape with show
-title and art** swaps the still for the show's wide art. Neither replaces the stock **Landscape**
-style; all three sit in the same list.
+Patch 005 exists because a widget labels an episode with the episode title and nothing else, and
+in a *next episodes* widget that is the one field which does not say what the row is. "Special
+Treatments" is a row about The White Lotus, and the only thing on screen that says so is a frame
+grab. So each style that draws an item label gets a **with show title** twin, which puts the show
+name on the first line and the episode name on the second:
+
+    Amazing Hotels:
+    Shark Tank Down Under...
+
+The two lines are two label controls rather than one run of text. Upstream stacks a single control
+there, a textbox when `use_label` is false and a plain label when it is true, and a textbox wraps
+rather than truncates, so a long episode name flowed onto a third line and was clipped with nothing
+to show for it. A label given a width truncates itself, which is where the trailing dots come from;
+Kodi draws three of them and the count is not a skin setting. The focused row scrolls the whole
+episode name past instead, which is what `<scroll>` tied to the focused-layout flag buys. An item
+that is not an episode -- a movie, a show, a PVR channel -- puts its label on the first line and
+leaves the second empty, so a style picked for a mixed widget looks the way it always did.
+
+**Landscape** and **Board** additionally get a **with show title and art** twin, because those two
+are the styles whose art is the episode still. The other label-bearing styles do not, because their
+art chains already answer with the season or show poster for an episode: `Image_Poster` ranks
+`poster`, `season.poster`, `tvshow.poster`, and an episode carries no bare `poster`. **Card** and
+**Circle** get no twin at all, because neither layout draws an item label, so there would be
+nothing to title. None of the twins replace a stock style; they sit in the same list beside them.
 
 They are picked per widget, where every other widget setting is picked. Skin settings →
 **Customise shortcuts and widgets** (or Settings → **Customise widgets**), pick the menu the widget
-lives on down the left, **Widgets** on the right, then the widget itself, then **Style**. The two
-new entries sit at the end of the same list as Poster, Landscape, Square and the rest. Closing that
+lives on down the left, **Widgets** on the right, then the widget itself, then **Style**. The new
+entries sit at the end of the same list as Poster, Landscape, Square and the rest. Closing that
 dialog rewrites the generated widget includes, and so does every Home load, so the choice takes
 effect without a skin reload.
 
@@ -45,11 +62,13 @@ Four of the twenty-seven shows in this library have no landscape at all, and the
 `tvshow.fanart`, which is wide and is what the stock style would have shown for a show with no
 episode thumbnail anyway.
 
-The two new layouts are upstream's `Layout_Landscape` and `Layout_Labels` with one include name and
-one label expression changed, and `tools/gendescriptors.py` lifts them out of the pristine tree at
-generation time rather than restating them, so they cannot drift from upstream by transcription.
-They are new includes rather than edits to the originals: the stock landscape widget, the OSD
-playlist, the PVR guide and every hub row that uses them are left exactly as they were.
+The copied layouts and rows are upstream's own, with include names changed and, in the one label
+layout they all share, the single label control replaced by the two. `tools/gendescriptors.py`
+lifts them out of the pristine tree at generation time rather than restating them, so they cannot
+drift from upstream by transcription. They are new includes rather than edits to the originals: the
+stock widgets, the OSD playlist, the PVR guide and every hub row that uses them are left exactly as
+they were. `git log -L` over `Layout_Labels` and `Layout_Landscape` shows one commit each, the
+initial one, so what the copies can go stale against has not moved since the skin was released.
 
 Every anchor is an `<include name="...">` or `<variable name="...">` declaration line, except the
 two in the generator data, which are the catch-all rule each file ends with. Both kinds are the
@@ -64,6 +83,9 @@ The style names are plain English rather than `$LOCALIZE` ids. They ride inside 
 builtin that `script.skinvariables` splits on `&&` and then `unquote_plus`es, so they must avoid
 `&`, `=`, `+` and brackets; and a numbered string would stake a claim on an id that upstream is
 still handing out one at a time.
+
+The non-landscape twins are there to be compared against each other and are expected to be dropped
+once one of them wins. Dropping them is one edit to `_STYLES` in `tools/gendescriptors.py`.
 
 Patch 004 exists because the ratings, status and awards in the info row come from TMDb Helper's
 service monitor, which answers a focus change some way after the cursor has moved — three or four
