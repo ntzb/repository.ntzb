@@ -75,7 +75,16 @@ line past instead, which is what `<scroll>` tied to the focused-layout flag buys
 not an episode -- a movie, a show, a PVR channel -- puts its label on the first line and leaves the
 second empty, so a style picked for a mixed widget looks the way it always did.
 
-A second entry, **Landscape with show title and art, five per row**, is the same style at 360
+The same two lines carry a live channel. A channel has no `TVShowTitle`, so without a branch of
+its own it fell through to `ListItem.Label` and the row said nothing but the channel name, which is
+what the stock landscape style already said. It does have `ChannelName`, and when the guide has
+anything to say, a `Title` holding the programme now showing, so the row becomes the channel name
+above the programme. With no programme the channel name stands alone and the colon is not added.
+The two labels are compared rather than assumed to differ, because a channel the guide knows
+nothing about can answer with its own name in both; comparing two infolabels is upstream's own
+idiom, which `Image_Landscape` already uses to test `Art(thumb)` against `Art(poster)`.
+
+A second entry, **Landscape with show title and art - five per row**, is the same style at 360
 pitch instead of 450 -- 1800 divided five ways rather than four, which is how every stock pitch in
 `Includes_Constants.xml` is derived. `item_h` follows `item_w` at 16:9, the diffuse mask moves to
 the nearest stock landscape size, and `itemlayout_h` is left alone so the two label lines keep

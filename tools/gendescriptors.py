@@ -719,8 +719,23 @@ _IS_SHOW_ITEM = ("!String.IsEmpty(ListItem.TVShowTitle) + "
 _HAS_NUMBER = "!String.IsEmpty(ListItem.Season) + !String.IsEmpty(ListItem.Episode)"
 _HAS_NAME = "!String.IsEmpty(ListItem.Title) + !String.StartsWith(ListItem.Title,Episode )"
 
+# A live channel has no TVShowTitle, so without a branch of its own it falls all the way
+# through to ListItem.Label and the row says nothing but the channel name, which is what
+# the stock landscape style already said. What it does have is ChannelName and, when the
+# guide has anything to say, a Title holding the programme now showing.
+#
+# The two are compared rather than assumed to differ: a channel the guide knows nothing
+# about can answer with the channel name in both, and "Kan 11:" above "Kan 11" would be
+# worse than the plain name. Comparing two infolabels this way is upstream's own idiom --
+# Image_Landscape tests Art(thumb) against Art(poster) the same way.
+_IS_CHANNEL = "!String.IsEmpty(ListItem.ChannelName)"
+_HAS_PROGRAMME = ("!String.IsEmpty(ListItem.Title) + "
+                  "!String.IsEqual(ListItem.Title,ListItem.ChannelName)")
+
 SHOWTITLE_LABEL_VARS = """    <variable name="Label_ShowTitle_Upper">
         <value condition="%(show)s">$INFO[ListItem.TVShowTitle,,:]</value>
+        <value condition="%(chan)s + %(prog)s">$INFO[ListItem.ChannelName,,:]</value>
+        <value condition="%(chan)s">$INFO[ListItem.ChannelName]</value>
         <value>$INFO[ListItem.Label]</value>
     </variable>
 
@@ -728,9 +743,11 @@ SHOWTITLE_LABEL_VARS = """    <variable name="Label_ShowTitle_Upper">
         <value condition="%(show)s + %(num)s + %(name)s">$VAR[Label_Plot_Episode_Number]$INFO[ListItem.Title, - ,]</value>
         <value condition="%(show)s + %(num)s">$VAR[Label_Plot_Episode_Number]</value>
         <value condition="%(show)s + %(name)s">$INFO[ListItem.Title]</value>
+        <value condition="%(chan)s + %(prog)s">$INFO[ListItem.Title]</value>
     </variable>
 
-""" % {"show": _IS_SHOW_ITEM, "num": _HAS_NUMBER, "name": _HAS_NAME}
+""" % {"show": _IS_SHOW_ITEM, "num": _HAS_NUMBER, "name": _HAS_NAME,
+       "chan": _IS_CHANNEL, "prog": _HAS_PROGRAMME}
 
 # tvshow.landscape first, and deliberately. metadatautils copies the show's landscape down
 # onto the unprefixed key when the episode has none, so on these items 'landscape' is
