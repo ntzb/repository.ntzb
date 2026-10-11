@@ -28,14 +28,11 @@
     {
       "file": "1080i/Includes_Info.xml",
       "kind": "replace",
-      "count": 6,
+      "count": 3,
       "contexts": [
         "83c9510714f0b06e230a3d48e9624477ae41b89a3313abed89e665c5bb799454",
         "b6f03986de4917d82928846b08eda4b69b7360925829963e5062d4e7f45b1a8b",
-        "7688f5a98023fbbc4acb209407190102a2ac141c13dfdac45737a37a4357d098",
-        "49e8e5a47592007fccd49b01fac52b80e555e72393f3c0209a816b02e2e8b18e",
-        "49e8e5a47592007fccd49b01fac52b80e555e72393f3c0209a816b02e2e8b18e",
-        "49e8e5a47592007fccd49b01fac52b80e555e72393f3c0209a816b02e2e8b18e"
+        "6e5593aa7eda6a189a983f84de9b66e8c5d6b7f171573b6a64c9bf5dc9904994"
       ],
       "find": "<visible>String.IsEmpty($PARAM[container]$PARAM[listitem].Art(clearlogo))</visible>",
       "with": "<visible>[String.IsEmpty($PARAM[container]$PARAM[listitem].Art(clearlogo)) | Skin.HasSetting(View.DisableClearlogoTitle)]</visible>"
@@ -43,13 +40,10 @@
     {
       "file": "1080i/Includes_Info.xml",
       "kind": "replace",
-      "count": 5,
+      "count": 2,
       "contexts": [
-        "25c2109feb5321adc3fc1ad5cabbb9be297bf51c64fab566dbf4e0ace276b085",
-        "9450d053f0627043edae7d89afcf27787c27f57cda26d7039d7750e9e790df5e",
-        "34e18e411d23fa685ae26ac1435118a0a19fb92c2c75be3a515c28f7b5c1bac5",
-        "4deb3709b42189b5c052faa275f918ebdb03ffff18da57afe063a3d91680d416",
-        "4deb3709b42189b5c052faa275f918ebdb03ffff18da57afe063a3d91680d416"
+        "297b99a644449ef88b768271bb4aa11018a9a94fc52f81f16b8eda348e72969b",
+        "7e3c7338575f2418411a7aee406d1b5572629af84bdef39b6c75860d94b39066"
       ],
       "find": "<visible>String.IsEmpty($PARAM[container]$PARAM[listitem].Art(tvshow.clearlogo))</visible>",
       "with": "<visible>[String.IsEmpty($PARAM[container]$PARAM[listitem].Art(tvshow.clearlogo)) | Skin.HasSetting(View.DisableClearlogoTitle)]</visible>"
@@ -57,12 +51,9 @@
     {
       "file": "1080i/Includes_Info.xml",
       "kind": "replace",
-      "count": 4,
+      "count": 1,
       "contexts": [
-        "802d7c5784f77431c237169ce984ff85676e8b44838f13dc63edcfb27732ea4d",
-        "1ea0d5621b92c9091db926db71a1ef19dad719931e2ebbc0e2ac849b1148a0cb",
-        "0ab754ff897f372029467d24ecea27ee6f67fb0a6b221a49ee86663bed3b0455",
-        "bb09eb1afabe19df985343cd58b912bac26cebd26be44db439cfa22d87b9c142"
+        "99d3aacfc18eae029169c7c47c580f092e0189e50c1f41ac3d5bca4c5f46a9ba"
       ],
       "find": "<visible>String.IsEmpty($PARAM[container]$PARAM[listitem].Art(artist.clearlogo))</visible>",
       "with": "<visible>[String.IsEmpty($PARAM[container]$PARAM[listitem].Art(artist.clearlogo)) | Skin.HasSetting(View.DisableClearlogoTitle)]</visible>"
@@ -70,15 +61,12 @@
     {
       "file": "1080i/Includes_Info.xml",
       "kind": "replace",
-      "count": 7,
+      "count": 4,
       "contexts": [
         "2d09215c20273191818721f3e43992dbb375f166fc5737604ccda78ad43846fc",
         "e3784a1dde2ce6c85ed0a4cac6f2badf35885150f96f53f2822f1e57623d0dae",
         "7700564f6066b1a7628a30fc1a7ff4111c17e7220c7e2d7cb5269640d49f97c0",
-        "1f7aefc85a862fda14e98a924de6fac5e34438d3bb90a580c68336987dded7c7",
-        "391739e6983ad418f3920c57083e0b15f029afe01e2b8c78b30d9bd26fda6ec3",
-        "c24995e8b754ac64e5a32af50efe1cc1916242544a5dc358e8fa8f4ffcbfa0cb",
-        "11e08acb206d343af8e85c14a51da0aeb168f137579a345a19f1ea976672176e"
+        "53ccec77c01bb1b0923cedd151aab5bea9ebb20bfa6d6eedd65f1f926d6f6536"
       ],
       "find": "<visible>![!String.IsEmpty($PARAM[croplogo]) + $EXP[Exp_TMDbHelper_IsCrop]]</visible>",
       "with": "<visible>[![!String.IsEmpty($PARAM[croplogo]) + $EXP[Exp_TMDbHelper_IsCrop]] | Skin.HasSetting(View.DisableClearlogoTitle)]</visible>"
