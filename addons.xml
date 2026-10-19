@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="skin.arctic.fuse.3" name="Arctic Fuse 3" provider-name="jurialmunkey" version="3.3.12+ntzb16">
+<addon id="skin.arctic.fuse.3" name="Arctic Fuse 3" provider-name="jurialmunkey" version="3.4.0+ntzb16">
     <requires>
         <import addon="xbmc.gui" version="5.17.0" />
         <import addon="script.skinvariables" version="2.2.9" />
@@ -234,7 +234,7 @@ v3.0.0 (2024-04-17)
   </extension>
 </addon>
 <addon id="plugin.video.themoviedb.helper"
-version="6.17.9+ntzb1"
+version="6.18.0+ntzb1"
 name="TMDb Helper"
 provider-name="jurialmunkey">
 <requires>
@@ -243,7 +243,7 @@ provider-name="jurialmunkey">
   <import addon="script.module.pil" version="1.1.7"/>
   <import addon="script.module.addon.signals" version="0.0.6" />
   <import addon="script.module.jurialmunkey" version="0.2.35" />
-  <import addon="script.module.infotagger" version="0.0.9" />
+  <import addon="script.module.infotagger" version="0.1.0" />
   <import addon="script.module.qrcode" version="6.1.0" />
 </requires>
 <extension point="xbmc.python.pluginsource" library="resources/plugin.py">
