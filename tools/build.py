@@ -33,7 +33,7 @@ SCRAPER = STOCK + ".ntzb"
 SCRAPER_NAME = "The Movie Database Python (ntzb)"
 IDAN = "plugin.video.idanplus"
 NEXTEP = "plugin.video.nextep"
-BUILD_N = 17
+BUILD_N = 18
 SCRAPER_BUILD_N = 2
 HELPER_BUILD_N = 1
 MODULE_BUILD_N = 1
@@ -171,6 +171,56 @@ def mark_unresolvable_optional(tree):
         log("marked optional            -> %s" % ", ".join(marked))
 
 
+TIMERS = "1080i/Timers.xml"
+TIMERS_CLOSE = "</timers>"
+
+WATCHDOG = """    <timer>
+        <name>ntzb_no_active_window</name>
+        <description>Activate Home when a skin reload left no window active.</description>
+        <start reset="true">Window.IsActive()</start>
+        <stop>!Window.IsActive() | Integer.IsGreaterOrEqual(Skin.TimerElapsedSecs(ntzb_no_active_window),20)</stop>
+        <onstop condition="Window.IsActive()">ActivateWindow(Home)</onstop>
+    </timer>
+"""
+
+
+def add_window_watchdog(tree):
+    """Recover the GUI when Kodi finishes a skin reload with no active window.
+
+    Updating the skin that is in use runs CSkinInfo::OnPreInstall first, which
+    unloads the skin, and CGUIWindowManager::DeInitialize leaves no active
+    window. The reload that follows reads the window to restore at the top of
+    CApplicationSkinHandling::LoadSkin, by which point it is already
+    WINDOW_INVALID, so the restore at the end is skipped and nothing is ever
+    activated. The skin loads, no window renders, and whatever draws on top
+    smears over a frame nobody owns until input arrives.
+
+    A skin timer is the only part of the skin that still runs there: LoadTimers
+    happens before the restore, and the manager is driven from
+    CApplication::ProcessSlow every 500ms rather than from the window system.
+
+    Window.IsActive() with no parameter resolves to WINDOW_INVALID and is true
+    only while no window is active. System.CurrentWindow cannot stand in for it:
+    a custom window is id + WINDOW_HOME and has no localized string, so that
+    label reads empty on a perfectly healthy hub.
+
+    The twenty seconds are because Kodi is briefly window-less during its own
+    startup. The stop condition fires early the moment a window appears, and
+    the onstop condition is what decides whether anything is done.
+    """
+    path = os.path.join(tree, *TIMERS.split("/"))
+    with open(path, "rb") as fh:
+        text = fh.read().decode("utf-8")
+    if "ntzb_no_active_window" in text:
+        raise SystemExit("%s: watchdog timer already present" % TIMERS)
+    if text.count(TIMERS_CLOSE) != 1:
+        raise SystemExit("%s: expected exactly one %s" % (TIMERS, TIMERS_CLOSE))
+    head, _, tail = text.partition(TIMERS_CLOSE)
+    with open(path, "wb") as fh:
+        fh.write((head + WATCHDOG + TIMERS_CLOSE + tail).encode("utf-8"))
+    log("added window watchdog      -> %s" % TIMERS)
+
+
 def unpack(url, work, name):
     log("fetching %s" % url)
     zpath = os.path.join(work, name + ".zip")
@@ -273,6 +323,7 @@ def main():
     tree = unpack("%s/%s/%s-%s.zip" % (UPSTREAM, SKIN, SKIN, up), work, SKIN)
     patch(tree, SKIN)
     mark_unresolvable_optional(tree)
+    add_window_watchdog(tree)
     set_addon_version(tree, ours)
 
     stree = unpack("%s/%s/%s-%s.zip" % (KODI, STOCK, STOCK, sup), work, STOCK)
