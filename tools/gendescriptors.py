@@ -910,6 +910,92 @@ def nextup_edits(tree):
     yield GENWALL, "insert", GENRULE_ANCHOR, GENRULES
 
 
+PVROSD = "1080i/DialogPVRChannelsOSD.xml"
+
+PVR_ROW_ANCHOR = '    <include name="Layout_PVRChannel_Programs">'
+PVR_CHANNELWIDTH = 380
+PVR_ROW_H = 80
+
+# Upstream draws the channel strip horizontally across the bottom of the OSD, four
+# items wide. A vertical panel fits ten of the same rows instead, which is what the
+# dialog is actually for: finding a channel, not admiring one.
+PVR_CONTROLS = """    <controls>
+        <control type="group">
+            <left>view_pad</left>
+            <width>960</width>
+            <top>view_pad</top>
+            <bottom>view_pad</bottom>
+
+            <control type="label">
+                <height>50</height>
+                <left>20</left>
+                <align>left</align>
+                <aligny>center</aligny>
+                <font>font_mini</font>
+                <label>$INFO[VideoPlayer.ChannelGroup,$LOCALIZE[19141]: ,]</label>
+                <textcolor>main_fg_70</textcolor>
+            </control>
+
+            <control type="fixedlist" id="11">
+                <top>50</top>
+                <bottom>0</bottom>
+                <orientation>vertical</orientation>
+                <focusposition>4</focusposition>
+                <movement>4</movement>
+                <onleft>PreviousChannelGroup</onleft>
+                <onright>NextChannelGroup</onright>
+                <itemlayout height="%(h)d">
+                    <include content="Layout_PVROSDChannel">
+                        <param name="selected">false</param>
+                    </include>
+                </itemlayout>
+                <focusedlayout height="%(h)d">
+                    <include content="Layout_PVROSDChannel">
+                        <param name="selected">true</param>
+                    </include>
+                </focusedlayout>
+            </control>
+        </control>
+    </controls>""" % {"h": PVR_ROW_H}
+
+
+def _pvr_osd_row(tree):
+    """Upstream's own channel row, with the next-programme column taken out.
+
+    Layout_PVRChannel already carries everything the OSD list needs - the channel
+    icon and name, the now programme, and a ListItem.Progress bar - and the full
+    PVR Channels window runs it vertically at this same height. Lifting it keeps
+    the styling upstream's, including the progress textures.
+
+    Only the second column goes: in a 960px panel the now and next programmes
+    would get 270px each, and the title is the thing being read.
+    """
+    row = _include_block(tree, LAYOUTSXML, "Layout_PVRChannel")
+    marker = '<param name="affix">Next</param>'
+    i = row.index(marker)
+    start = row.rindex('<control type="group">', 0, i)
+    start = row.rindex("\n", 0, start) + 1
+    end = row.index("</control>", i)
+    end = row.index("\n", end) + 1
+    row = row[:start] + row[end:]
+    if marker in row:
+        raise SystemExit("derive: the next-programme column survived the cut")
+    row = _swap(row, '<include name="Layout_PVRChannel">',
+                '<include name="Layout_PVROSDChannel">', 1)
+    row = _swap(row, '<param name="channelwidth">480</param>',
+                '<param name="channelwidth">%d</param>' % PVR_CHANNELWIDTH, 1)
+    row = _swap(row, "<width>50%</width>", "<width>100%</width>", 1)
+    return row
+
+
+def pvr_osd_edits(tree):
+    with open(os.path.join(tree, PVROSD), "rb") as fh:
+        dialog = fh.read().decode("utf-8")
+    controls = _span(dialog, "    <controls>", "    </controls>") + "    </controls>"
+    yield LAYOUTSXML, "insert", PVR_ROW_ANCHOR, _pvr_osd_row(tree) + "\n" + PVR_ROW_ANCHOR
+    yield PVROSD, "replace", controls, PVR_CONTROLS
+
+
 def build(tree, pid, upstream, absent, gen):
     edits = []
     for rel, kind, find, with_ in gen(tree):
@@ -1035,6 +1121,9 @@ TARGETS = {
           [IMAGESXML, "Image_Landscape_ShowArt"], [ACTIONSXML, "LandscapeShowArt"],
           [GENROW, "LandscapeShowArt"], [GENWALL, "LandscapeShowArt"]],
          nextup_edits),
+        ("006-pvr-osd-vertical.json", "pvr-osd-vertical", "feature request to be offered",
+         [[LAYOUTSXML, "Layout_PVROSDChannel"], [PVROSD, "Layout_PVROSDChannel"]],
+         pvr_osd_edits),
     ),
     SCRAPER: (
         ("001-english-title.json", "english-title", "PR to be offered to xbmc",
