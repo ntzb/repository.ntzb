@@ -989,6 +989,14 @@ def _pvr_osd_row(tree):
     row = _swap(row, '<param name="channelwidth">480</param>',
                 '<param name="channelwidth">%d</param>' % PVR_CHANNELWIDTH, 1)
     row = _swap(row, "<width>50%</width>", "<width>100%</width>", 1)
+    # ColorPVRProgress is main_bg_70 - black. That reads as "filled" in the guide,
+    # where the row sits on a light plate, and vanishes on this panel's dark scrim:
+    # 1.05:1 against a dark scene. ColorWatchedProgress is the skin's own progress
+    # colour, follows the user's setting, and stays clear of the focus colour.
+    row = _swap(row, "$VAR[ColorPVRProgress]", "$VAR[ColorWatchedProgress]", 3)
+    # And give the track a rail, so the bar shows a proportion rather than a blob.
+    row = _swap(row, '<texturebg colordiffuse="00ffffff">',
+                '<texturebg colordiffuse="main_fg_30">', 1)
     return row
 
 
