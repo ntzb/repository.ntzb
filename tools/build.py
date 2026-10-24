@@ -6,6 +6,7 @@ published version keeps serving.
 import gzip
 import hashlib
 import os
+import re
 import shutil
 import sys
 import urllib.request
@@ -32,7 +33,7 @@ SCRAPER = STOCK + ".ntzb"
 SCRAPER_NAME = "The Movie Database Python (ntzb)"
 IDAN = "plugin.video.idanplus"
 NEXTEP = "plugin.video.nextep"
-BUILD_N = 16
+BUILD_N = 17
 SCRAPER_BUILD_N = 2
 HELPER_BUILD_N = 1
 MODULE_BUILD_N = 1
@@ -59,10 +60,19 @@ def upstream_version(addon_id):
     return index_version(fetch(UPSTREAM + "/addons.xml"), addon_id, "jurialmunkey addons.xml")
 
 
+_kodi_index = None
+
+
+def kodi_index():
+    global _kodi_index
+    if _kodi_index is None:
+        _kodi_index = gzip.decompress(fetch(KODI + "/addons.xml.gz"))
+    return _kodi_index
+
+
 def kodi_version(addon_id):
     """The version Kodi's own repository advertises -- the released artifact, not git."""
-    return index_version(gzip.decompress(fetch(KODI + "/addons.xml.gz")), addon_id,
-                         "kodi addons.xml.gz")
+    return index_version(kodi_index(), addon_id, "kodi addons.xml.gz")
 
 
 def fish_version(addon_id):
@@ -107,6 +117,58 @@ def patch(tree, addon_id):
         desc = patchlib.load(os.path.join(d, name))
         touched = patchlib.apply(tree, desc)
         log("applied %-22s -> %s" % (desc["id"], ", ".join(touched)))
+
+
+IMPORT = re.compile(rb'<import\s+addon="([^"]+)"[^>]*?/>')
+
+
+def published_ids():
+    return {SKIN, HELPER, MODULE, FONT, REPO, SCRAPER, IDAN, NEXTEP}
+
+
+def official_ids():
+    blob = kodi_index().decode("utf-8")
+    return {a.get("id") for a in ET.fromstring(blob).findall("addon")}
+
+
+def mark_unresolvable_optional(tree):
+    """Make every import this repository cannot supply optional.
+
+    Kodi resolves a dependency that is not in the official repository only from
+    the repository the add-on itself came from -- CAddonRepos::FindDependency
+    falls through to FindDependencyByParentRepo, which searches that one repo and
+    nothing else. So an import we neither publish nor share with Kodi's own index
+    is unreachable no matter which other repositories are installed.
+
+    An unreachable *required* import is not a quiet failure: Kodi unloads the
+    running skin before it resolves dependencies, so the install aborts with the
+    GUI already torn down and no skin to fall back to (2026-10-23, upstream added
+    resource.images.arctic.splash). An optional import that is not installed is
+    skipped outright, which costs only the add-on's own artwork.
+
+    The rule is evaluated against whatever <requires> happens to hold, so a
+    resource upstream adds later is covered without regenerating any descriptor.
+    """
+    known = published_ids() | official_ids()
+    path = os.path.join(tree, "addon.xml")
+    with open(path, "rb") as fh:
+        buf = fh.read()
+    marked = []
+
+    def rewrite(m):
+        addon_id = m.group(1).decode("utf-8")
+        if addon_id.startswith(("xbmc.", "kodi.")) or addon_id in known:
+            return m.group(0)
+        if b'optional=' in m.group(0):
+            return m.group(0)
+        marked.append(addon_id)
+        return m.group(0)[:-2].rstrip() + b' optional="true"/>'
+
+    out = IMPORT.sub(rewrite, buf)
+    if marked:
+        with open(path, "wb") as fh:
+            fh.write(out)
+        log("marked optional            -> %s" % ", ".join(marked))
 
 
 def unpack(url, work, name):
@@ -210,6 +272,7 @@ def main():
 
     tree = unpack("%s/%s/%s-%s.zip" % (UPSTREAM, SKIN, SKIN, up), work, SKIN)
     patch(tree, SKIN)
+    mark_unresolvable_optional(tree)
     set_addon_version(tree, ours)
 
     stree = unpack("%s/%s/%s-%s.zip" % (KODI, STOCK, STOCK, sup), work, STOCK)
