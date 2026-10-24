@@ -926,6 +926,10 @@ PVR_CONTROLS = """    <controls>
             <top>view_pad</top>
             <bottom>view_pad</bottom>
 
+            <include content="Object_ItemBack">
+                <param name="colordiffuse">main_bg_70</param>
+            </include>
+
             <control type="label">
                 <height>50</height>
                 <left>20</left>
