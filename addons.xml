@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="skin.arctic.fuse.3" name="Arctic Fuse 3" provider-name="jurialmunkey" version="3.4.10+ntzb21">
+<addon id="skin.arctic.fuse.3" name="Arctic Fuse 3" provider-name="jurialmunkey" version="3.4.12+ntzb21">
     <requires>
         <import addon="xbmc.gui" version="5.17.0" />
         <import addon="script.skinvariables" version="2.2.9" />
@@ -236,7 +236,7 @@ v3.0.0 (2024-04-17)
   </extension>
 </addon>
 <addon id="plugin.video.themoviedb.helper"
-version="6.18.3+ntzb1"
+version="6.19.0+ntzb1"
 name="TMDb Helper"
 provider-name="jurialmunkey">
 <requires>
@@ -301,7 +301,7 @@ provider-name="jurialmunkey">
     </assets>
   </extension>
 </addon>
-<addon id="plugin.video.idanplus" name="עידן+ פלוס" version="4.0.2+ntzb1" provider-name="Fishenzon">
+<addon id="plugin.video.idanplus" name="עידן+ פלוס" version="4.0.3+ntzb1" provider-name="Fishenzon">
 		<requires>
 			<import addon="script.module.requests"/>
 			<import addon="script.module.xmltodict"/>
