@@ -1056,22 +1056,6 @@ def _crlf(*lines):
     return "".join(line + "\r\n" for line in lines)
 
 
-IDAN_LOGO_FIND = _crlf(
-    "\t\t\tif channel.get('my_image', '') == '':",
-    "\t\t\t\ttvg_logo = 'special://home/addons/{0}/resources/images/{1}'"
-    ".format(common.AddonID, channel['image'])",
-)
-
-IDAN_LOGO_WITH = _crlf(
-    "\t\t\tif channel.get('my_image', '') == '':",
-    "\t\t\t\timage = channel['image']",
-    "\t\t\t\t# Every image in channels.json is an absolute url, and",
-    "\t\t\t\t# GetChannelIconFullPath() already hands it to Kodi as it stands.",
-    "\t\t\t\t# Only the m3u prefixed the add-on's own images directory onto it.",
-    "\t\t\t\ttvg_logo = image if image.startswith('http://') or image.startswith('https://')"
-    " else 'special://home/addons/{0}/resources/images/{1}'.format(common.AddonID, image)",
-)
-
 IDAN_IMAGE_FIND = _crlf(
     "def GetImageLink(imageUrl, imageName):",
     "    i = imageUrl.find('?')",
@@ -1095,12 +1079,6 @@ IDAN_RADIO_WITH = _crlf(
     "                image = common.quoteNonASCII("
     "serie['media_group'][0]['media_item'][2]['src'])",
 )
-
-
-def idan_tvg_logo_edits(tree):
-    # The my_image branch below is left alone: main.ChangeChannelLogo() stores
-    # whatever SaveLogo() returns, which is a bare filename, never a url.
-    yield IDAN_IPTV, "replace", IDAN_LOGO_FIND, IDAN_LOGO_WITH
 
 
 def idan_image_url_edits(tree):
@@ -1142,9 +1120,7 @@ TARGETS = {
          [[TMDB, "movie_fallback.get('title')"], [TMDB, "self.urls, 'en')"]], english_title_edits),
     ),
     IDAN: (
-        ("001-tvg-logo.json", "tvg-logo", "https://github.com/Fishenzon/repo/issues/310",
-         [[IDAN_IPTV, "image.startswith('http://')"]], idan_tvg_logo_edits),
-        ("002-kan-image-url.json", "kan-image-url",
+        ("001-kan-image-url.json", "kan-image-url",
          "https://github.com/Fishenzon/repo/issues/311",
          [[IDAN_KAN, "imageUrl = common.quoteNonASCII(imageUrl)"],
           [IDAN_KAN, "common.quoteNonASCII(serie['media_group']"]], idan_image_url_edits),

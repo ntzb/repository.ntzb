@@ -17,7 +17,7 @@
       "kind": "replace",
       "count": 1,
       "contexts": [
-        "db5340bfbf61a8cc4e6b77bee4cf328cd59fe9c836a0dce90fc4e0054df877f0"
+        "014a7d6e0112027f016005cd51f5a1c42e27d4a7d21ad7b9124de3bae4a20908"
       ],
       "find": "def GetImageLink(imageUrl, imageName):\r\n    i = imageUrl.find('?')\r\n",
       "with": "def GetImageLink(imageUrl, imageName):\r\n    # Several callers hand the url straight out of the page or the mobile api\r\n    # with the Hebrew path still raw, and kan answers 404 to those. Quoting here\r\n    # covers every caller at once; quoteNonASCII leaves ascii alone, so it never\r\n    # double-encodes and is a no-op for the callers that already quote.\r\n    imageUrl = common.quoteNonASCII(imageUrl)\r\n    i = imageUrl.find('?')\r\n"
@@ -27,8 +27,8 @@
       "kind": "replace",
       "count": 2,
       "contexts": [
-        "973dc2c8dab8b4122f01ab19d90d8ac6280b1b2c7f72a79ecda1a806d4302383",
-        "88c4c715cd75488110753f4c320f9ac6f742f6b24aa98513f3f3649b35286ebe"
+        "0b46d67abb01d84a93bac842a40a7405324823a952e3164cebcb6fdc5ed23661",
+        "544ea5820e21cab9ee5ddb0c980dd7a4bcb19ca9842cf4b41d5c30f5db17f55f"
       ],
       "find": "                image = serie['media_group'][0]['media_item'][2]['src']\r\n",
       "with": "                image = common.quoteNonASCII(serie['media_group'][0]['media_item'][2]['src'])\r\n"
