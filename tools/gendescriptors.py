@@ -493,11 +493,14 @@ def helper_translated_plot_edits(tree):
 # whole of "genres in Hebrew", for two requests a month and no per-item cost.
 # configure_request_kwargs() overwrites language unconditionally, hence building the
 # url the way get_response_json does rather than passing a keyword it would discard.
-GENRES_FIND = """        def get_genres(tmdb_type):
-            genres = self.tmdb_api.get_response_json('genre', tmdb_type, 'list') or {}
+# 6.19.4 moved the fetcher to an argument so the two types could run on a
+# ParallelThread. The argument goes unused here for the same reason the call was
+# bypassed before it existed: it routes through configure_request_kwargs.
+GENRES_FIND = """        def get_genres(tmdb_type, get_response_json):
+            genres = get_response_json('genre', tmdb_type, 'list') or {}
 """
 
-GENRES_WITH = """        def get_genres(tmdb_type):
+GENRES_WITH = """        def get_genres(tmdb_type, get_response_json):
             requrl = self.tmdb_api.get_request_url('genre', tmdb_type, 'list', language=self.tmdb_api.language)
             genres = self.tmdb_api.get_api_request_json(requrl) or {}
 """

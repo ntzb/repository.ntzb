@@ -13,10 +13,10 @@
       "kind": "replace",
       "count": 1,
       "contexts": [
-        "783a1b2cd6558d330554bbf9cbdc2a4f4d2e7fe139b0aef23a02ea2cb39d346f"
+        "ef7ecb8cc333f95568df029b1388667d4c73aaa64c578e7c792a68493837cb11"
       ],
-      "find": "        def get_genres(tmdb_type):\n            genres = self.tmdb_api.get_response_json('genre', tmdb_type, 'list') or {}\n",
-      "with": "        def get_genres(tmdb_type):\n            requrl = self.tmdb_api.get_request_url('genre', tmdb_type, 'list', language=self.tmdb_api.language)\n            genres = self.tmdb_api.get_api_request_json(requrl) or {}\n"
+      "find": "        def get_genres(tmdb_type, get_response_json):\n            genres = get_response_json('genre', tmdb_type, 'list') or {}\n",
+      "with": "        def get_genres(tmdb_type, get_response_json):\n            requrl = self.tmdb_api.get_request_url('genre', tmdb_type, 'list', language=self.tmdb_api.language)\n            genres = self.tmdb_api.get_api_request_json(requrl) or {}\n"
     }
   ]
 }
