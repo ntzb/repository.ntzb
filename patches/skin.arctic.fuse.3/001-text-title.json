@@ -76,10 +76,10 @@
       "kind": "insert",
       "count": 1,
       "contexts": [
-        "ea922b325b37e2f5847a4f2b4054815a8e153cf099a77664a59c012c00dab6b1"
+        "8fa85a3566791870757da85f3aa95fbb0c648d61658ec50c05931467f583fbe3"
       ],
       "find": "            <onclick>Skin.ToggleSetting(View.UseDetailedListLabels)</onclick>\n        </include>\n",
-      "with": "            <onclick>Skin.ToggleSetting(View.UseDetailedListLabels)</onclick>\n        </include>\n\n        <include content=\"Settings_Button\" description=\"Clearlogo title\">\n            <param name=\"dialog\">false</param>\n            <param name=\"window\">skinsettings</param>\n            <param name=\"baseid\">$PARAM[baseid]</param>\n            <param name=\"id\">900</param>\n            <param name=\"slevel\">1</param>\n            <param name=\"control\">radiobutton</param>\n            <label>Logo</label>\n            <onclick>Skin.ToggleSetting(View.DisableClearlogoTitle)</onclick>\n            <selected>!Skin.HasSetting(View.DisableClearlogoTitle)</selected>\n        </include>\n"
+      "with": "            <onclick>Skin.ToggleSetting(View.UseDetailedListLabels)</onclick>\n        </include>\n\n        <include content=\"Settings_Button\" description=\"Clearlogo title\">\n            <param name=\"dialog\">false</param>\n            <param name=\"window\">skinsettings</param>\n            <param name=\"baseid\">$PARAM[baseid]</param>\n            <param name=\"id\">900</param>\n            <param name=\"help\">Use the clearlogo image for titles where one exists.</param>\n            <param name=\"control\">radiobutton</param>\n            <label>Logo</label>\n            <onclick>Skin.ToggleSetting(View.DisableClearlogoTitle)</onclick>\n            <selected>!Skin.HasSetting(View.DisableClearlogoTitle)</selected>\n        </include>\n"
     }
   ]
 }

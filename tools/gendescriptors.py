@@ -38,7 +38,7 @@ SETTINGS_BUTTON = SETTINGS_ANCHOR + """
             <param name="window">skinsettings</param>
             <param name="baseid">$PARAM[baseid]</param>
             <param name="id">900</param>
-            <param name="slevel">1</param>
+            <param name="help">Use the clearlogo image for titles where one exists.</param>
             <param name="control">radiobutton</param>
             <label>Logo</label>
             <onclick>Skin.ToggleSetting(%s)</onclick>
