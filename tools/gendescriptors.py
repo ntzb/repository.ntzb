@@ -397,7 +397,7 @@ def font_edits(tree):
 HELPER_TMDBAPI = "resources/tmdbhelper/lib/api/tmdb/api.py"
 HELPER_BASEITEM = "resources/tmdbhelper/lib/items/database/baseitem_factories/concrete_classes/baseclass.py"
 HELPER_MAPPINGS = "resources/tmdbhelper/lib/items/database/mappings.py"
-HELPER_LISTITEM = "resources/tmdbhelper/lib/items/listitem.py"
+HELPER_MERGE = "resources/tmdbhelper/lib/items/database/details/merge.py"
 HELPER_GENRES = "resources/tmdbhelper/lib/query/database/genres.py"
 
 # TMDb localises the item itself -- title, plot, poster_path, cast and crew names,
@@ -463,16 +463,19 @@ GET_INFO_WITH = """    def set_translated_plot(self, item):
 """ + GET_INFO_ANCHOR + """        self.item = self.set_translated_plot(self.item)
 """
 
-# merge_two_dicts(details, self) keeps self, so the plot mapped straight off the
+# merge_two_dicts(details, item) keeps the item, so the plot mapped straight off the
 # list response outranks the one the details cache just translated. Title and
 # tvshowtitle are already exempted here for the same reason; plot joins them.
+# 6.20.2 lifted this out of ListItem.set_details into a merger the item detail
+# service shares, so the exemption now covers that path too, which is what we want:
+# the translated plot should win wherever details get filled in.
 PLOT_OVERRIDE_ANCHOR = (
-    "        self.infolabels['tvshowtitle'] = details.get('infolabels', {})"
-    ".get('tvshowtitle') or self.infolabels.get('tvshowtitle')\n")
+    "        merged['infolabels']['tvshowtitle'] = infolabels.get('tvshowtitle')"
+    " or merged['infolabels'].get('tvshowtitle')\n")
 
 PLOT_OVERRIDE_WITH = PLOT_OVERRIDE_ANCHOR + (
-    "        self.infolabels['plot'] = details.get('infolabels', {})"
-    ".get('plot') or self.infolabels.get('plot')\n")
+    "        merged['infolabels']['plot'] = infolabels.get('plot')"
+    " or merged['infolabels'].get('plot')\n")
 
 
 def helper_translated_plot_edits(tree):
@@ -483,7 +486,7 @@ def helper_translated_plot_edits(tree):
     # and are refetched once.
     yield HELPER_BASEITEM, "replace", IS_TRANSLATION_FIND, IS_TRANSLATION_WITH
     yield HELPER_MAPPINGS, "insert", GET_INFO_ANCHOR, GET_INFO_WITH
-    yield HELPER_LISTITEM, "insert", PLOT_OVERRIDE_ANCHOR, PLOT_OVERRIDE_WITH
+    yield HELPER_MERGE, "insert", PLOT_OVERRIDE_ANCHOR, PLOT_OVERRIDE_WITH
 
 
 # Genre names never come from the item: both the list mapper's genre_ids and the
@@ -1138,7 +1141,7 @@ TARGETS = {
          "jurialmunkey/plugin.video.themoviedb.helper#707, #1181",
          [[HELPER_TMDBAPI, "        return 'en'"]], helper_english_metadata_edits),
         ("002-translated-plot.json", "translated-plot", "PR to be offered to jurialmunkey",
-         [[HELPER_MAPPINGS, "set_translated_plot"], [HELPER_LISTITEM, "self.infolabels['plot'] = details"]],
+         [[HELPER_MAPPINGS, "set_translated_plot"], [HELPER_MERGE, "merged['infolabels']['plot']"]],
          helper_translated_plot_edits),
         ("003-translated-genres.json", "translated-genres", "PR to be offered to jurialmunkey",
          [[HELPER_GENRES, "get_request_url"]], helper_translated_genres_edits),

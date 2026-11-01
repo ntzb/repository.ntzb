@@ -7,8 +7,8 @@
       "set_translated_plot"
     ],
     [
-      "resources/tmdbhelper/lib/items/listitem.py",
-      "self.infolabels['plot'] = details"
+      "resources/tmdbhelper/lib/items/database/details/merge.py",
+      "merged['infolabels']['plot']"
     ]
   ],
   "edits": [
@@ -33,14 +33,14 @@
       "with": "    def set_translated_plot(self, item):\n        iso_language = self.language[:2]\n        for i in item['translation']:\n            if i['iso_language'] != iso_language:\n                continue\n            if i['plot']:\n                item['item']['plot'] = i['plot']\n            break\n        return item\n\n    def get_info(self, data, **kwargs):\n        self.data = data\n        self.item = self.get_empty_item()\n        self.item = self.map_item(self.item, data)\n        self.item = self.map_dict(self.item, data)\n        self.item = self.set_translated_plot(self.item)\n"
     },
     {
-      "file": "resources/tmdbhelper/lib/items/listitem.py",
+      "file": "resources/tmdbhelper/lib/items/database/details/merge.py",
       "kind": "insert",
       "count": 1,
       "contexts": [
-        "18d5d13a476cebf319eaefac53ca22204446f55384af6ee5a6d5b382aef88e9d"
+        "392c7ba54ff0fa0fde9089a9e8dc25834bddf05865cae893bb26d712f2074187"
       ],
-      "find": "        self.infolabels['tvshowtitle'] = details.get('infolabels', {}).get('tvshowtitle') or self.infolabels.get('tvshowtitle')\n",
-      "with": "        self.infolabels['tvshowtitle'] = details.get('infolabels', {}).get('tvshowtitle') or self.infolabels.get('tvshowtitle')\n        self.infolabels['plot'] = details.get('infolabels', {}).get('plot') or self.infolabels.get('plot')\n"
+      "find": "        merged['infolabels']['tvshowtitle'] = infolabels.get('tvshowtitle') or merged['infolabels'].get('tvshowtitle')\n",
+      "with": "        merged['infolabels']['tvshowtitle'] = infolabels.get('tvshowtitle') or merged['infolabels'].get('tvshowtitle')\n        merged['infolabels']['plot'] = infolabels.get('plot') or merged['infolabels'].get('plot')\n"
     }
   ]
 }
