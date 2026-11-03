@@ -56,6 +56,17 @@ jobs:
             git switch master
           done
 
+      # A published build means every patch applied against current upstream, so any
+      # drift still open was fixed by whatever got us here, whichever versions it named.
+      - name: Close drift issues
+        if: steps.build.outputs.published == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for n in $(gh issue list --label drift --state open --json number --jq '.[].number'); do
+            gh issue close "$n" --reason completed --comment "Patches apply again at upstream skin ${{ steps.build.outputs.upstream }} / scraper ${{ steps.build.outputs.scraper_upstream }} / helper ${{ steps.build.outputs.helper_upstream }} / module ${{ steps.build.outputs.module_upstream }} / idanplus ${{ steps.build.outputs.idan_upstream }}. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          done
+
       - name: Report drift
         if: failure()
         env:
