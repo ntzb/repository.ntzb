@@ -60,11 +60,12 @@ jobs:
       # drift still open was fixed by whatever got us here, whichever versions it named.
       - name: Close drift issues
         if: steps.build.outputs.published == 'yes'
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           for n in $(gh issue list --label drift --state open --json number --jq '.[].number'); do
-            gh issue close "$n" --reason completed --comment "Patches apply again at upstream skin ${{ steps.build.outputs.upstream }} / scraper ${{ steps.build.outputs.scraper_upstream }} / helper ${{ steps.build.outputs.helper_upstream }} / module ${{ steps.build.outputs.module_upstream }} / idanplus ${{ steps.build.outputs.idan_upstream }}. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            gh issue close "$n" --reason completed --comment "Patches apply again at upstream skin ${{ steps.build.outputs.upstream }} / scraper ${{ steps.build.outputs.scraper_upstream }} / helper ${{ steps.build.outputs.helper_upstream }} / module ${{ steps.build.outputs.module_upstream }} / idanplus ${{ steps.build.outputs.idan_upstream }}. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || echo "could not close #$n, leaving it for the next green build"
           done
 
       - name: Report drift
