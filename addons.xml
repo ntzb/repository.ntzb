@@ -236,7 +236,7 @@ v3.0.0 (2024-04-17)
   </extension>
 </addon>
 <addon id="plugin.video.themoviedb.helper"
-version="6.20.9+ntzb1"
+version="6.21.0+ntzb1"
 name="TMDb Helper"
 provider-name="jurialmunkey">
 <requires>
@@ -284,7 +284,7 @@ provider-name="jurialmunkey">
   </assets>
 </extension>
 </addon>
-<addon id="script.module.jurialmunkey" name="jurialmunkey common" provider-name="jurialmunkey" version="0.2.35+ntzb1">
+<addon id="script.module.jurialmunkey" name="jurialmunkey common" provider-name="jurialmunkey" version="0.2.36+ntzb1">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
     <import addon="script.module.requests" version="2.9.1"/>
