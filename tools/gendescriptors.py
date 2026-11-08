@@ -573,27 +573,20 @@ def module_window_edits(tree):
 LISTSXML = "1080i/Includes_Lists.xml"
 LAYOUTSXML = "1080i/Includes_Layouts.xml"
 WIDGETSXML = "1080i/Includes_Widgets.xml"
-ACTIONSXML = "1080i/Includes_Actions.xml"
 LABELSXML = "1080i/Includes_Labels.xml"
 IMAGESXML = "1080i/Includes_Images.xml"
 GENROW = "shortcuts/generator/data/setup/widgets_include_row.xml"
 GENWALL = "shortcuts/generator/data/setup/widgets_include_wall.xml"
 
 # A widget style is a value stored on the shortcut node, mapped to a row include by one
-# generator rule, named in two label variables and one image variable, and offered in one
-# do_edit option list. That is exactly the set of places jurialmunkey touched to add
+# generator rule, named in two label variables and one image variable, and offered in the
+# style picker (a do_edit option list before 3.4.19, a card since). That is exactly the set of places jurialmunkey touched to add
 # Placard in 59d791a, and it is the set touched here -- plus the row include itself, the
 # layout it draws with, and the busy placeholder the widget stands up while it loads.
 #
 # One entry per style offered: the value stored on the shortcut node, the option name in
 # the picker, the base row and layout it copies, the art variable spelled into the row,
 # and any row parameters overridden on the copy.
-#
-# A widget style is a value on the shortcut node, mapped to a row include by one generator
-# rule, named in two label variables and one image variable, and offered in one do_edit
-# option list. That is exactly the set of places jurialmunkey touched to add Placard in
-# 59d791a, plus the row include itself, the layout it draws with, and the busy placeholder
-# the widget stands up while it loads.
 #
 # The five-per-row variant is the same layout at 360 pitch instead of 450, which is 1800
 # divided five ways rather than four; every stock pitch in Includes_Constants.xml is 1800
@@ -606,9 +599,9 @@ GENWALL = "shortcuts/generator/data/setup/widgets_include_wall.xml"
 # recover it -- the long show names and the long episode titles are not the same shows, so
 # moving the episode number up trades two broken first lines for one saved second line.
 _STYLES = (
-    ("LandscapeShowArt", "Landscape with show title and art",
+    ("LandscapeShowArt", "Show title",
      "Landscape", "Layout_Landscape", "Image_Landscape_ShowArt", {}),
-    ("LandscapeShowArtSmall", "Landscape with show title and art - five per row",
+    ("LandscapeShowArtSmall", "Show title x5",
      "Landscape", None, "Image_Landscape_ShowArt",
      {"item_w": "320", "item_h": "180", "itemlayout_w": "360"}),
 )
@@ -797,12 +790,63 @@ def _style_images():
     return "".join(_STYLE_IMAGE % (style, _STYLE_ICONS[base]) for style, _, base in _styles())
 
 
-# Appended to the pairs rather than put in front of them: do_edit preselects on the stored
-# value rather than on position, and a user who has picked none of these should still land
-# on the list they know.
-WIDGETSTYLE_TAIL = "&amp;&amp;$LOCALIZE[736]&amp;&amp;True)</value>"
-WIDGETSTYLE_PAIRS = "".join(
-    "&amp;%s=%s" % (name, style) for style, name, _ in _styles()) + WIDGETSTYLE_TAIL
+# 3.4.19 replaced the do_edit option list with a card picker (dialog 1134). Its tick
+# compares the card label with Label_Shortcut_Widget_Style, so the card label has to be
+# the same name the label variables carry, and short enough to fit a card. Appended after
+# upstream's cards, so a user who has picked none of these still finds the grid they know.
+DIALOGCUSTOM = "1080i/Dialog_DialogCustom.xml"
+CARDS_ANCHOR = ("        </content>\n"
+                "    </include>\n"
+                "\n"
+                '    <include name="DialogCustom_Layout_WidgetStyle">\n')
+_CARD = ('            <include content="DialogCustom_Cards_WidgetStyle_Item">\n'
+         '                <param name="label">%s</param>\n'
+         '                <param name="style">%s</param>\n'
+         '            </include>\n')
+CARDS = "".join(_CARD % (name, style) for style, name, _ in _styles()) + CARDS_ANCHOR
+
+# Wireframes in upstream's own scale: its Landscape card draws the 410x230.625 item at
+# 37.11% x 55.88% with a 450 pitch, top 16.85%. Ours add the second label line the
+# show-title layout carries, and the x5 variant draws at its real 320x180 on a 360 pitch.
+WIREFRAME_ANCHOR = ('            <control type="group">\n'
+                    '                <visible>String.IsEqual(ListItem.Property(value),Poster)</visible>\n')
+_SX, _SY, _TOP = 37.11 / 410, 55.88 / 230.625, 16.85
+_BLOCK = ('                <include content="DialogSetupWizard_Block"><param name="left">%s%%</param>'
+          '<param name="top">%s%%</param><param name="width">%s%%</param><param name="height">%s%%</param>'
+          '%s<param name="opaque">$PARAM[selected]</param></include>\n')
+
+
+def _pct(v):
+    return ("%.2f" % v).rstrip("0").rstrip(".")
+
+
+def _wireframe(style, item_w, item_h, pitch):
+    w, h, step = item_w * _SX, item_h * _SY, pitch * _SX
+    line1, line2 = _TOP + h + 4.12, _TOP + h + 4.12 + 8.8
+    out = ['            <control type="group">\n',
+           '                <visible>String.IsEqual(ListItem.Property(value),%s)</visible>\n' % style]
+    i = 0
+    while i * step < 100:
+        left = i * step
+        fit = lambda width: min(width, 100 - left)
+        colour = lambda c: '<param name="colour">%s</param>' % c if c else ""
+        focused = i == 0
+        out.append(_BLOCK % (_pct(left), _pct(_TOP), _pct(fit(w)), _pct(h),
+                             colour("dialog_fg_30" if focused else None)))
+        out.append(_BLOCK % (_pct(left), _pct(line1), _pct(fit(w * 0.62)), "6.3",
+                             colour("dialog_fg_50" if focused else "dialog_fg_30")))
+        out.append(_BLOCK % (_pct(left), _pct(line2), _pct(fit(w * 0.45)), "6.3",
+                             colour("dialog_fg_30")))
+        i += 1
+    out.append('            </control>\n')
+    return "".join(out)
+
+
+WIREFRAMES = "".join(
+    _wireframe(style, int(o.get("item_w", 410)), float(o.get("item_h", 230.625)),
+               int(o.get("itemlayout_w", 450)))
+    for style, _, _, _, _, o in _STYLES) + WIREFRAME_ANCHOR
+
 
 # The catch-all is the last rule in both files and is what upstream inserts ahead of, so
 # anchoring on it puts the new rules where a merged upstream would have put them.
@@ -911,7 +955,8 @@ def nextup_edits(tree):
         LABEL_SHORTCUT_STYLE_ANCHOR + _style_labels("Container(22001).ListItem")
     yield IMAGESXML, "insert", IMAGE_STYLE_ANCHOR, SHOWART_IMAGE_VAR + IMAGE_STYLE_ANCHOR + \
         _style_images()
-    yield ACTIONSXML, "insert", WIDGETSTYLE_TAIL, WIDGETSTYLE_PAIRS
+    yield DIALOGCUSTOM, "insert", CARDS_ANCHOR, CARDS
+    yield DIALOGCUSTOM, "insert", WIREFRAME_ANCHOR, WIREFRAMES
     yield GENROW, "insert", GENRULE_ANCHOR, GENRULES
     yield GENWALL, "insert", GENRULE_ANCHOR, GENRULES
 
@@ -1114,7 +1159,7 @@ TARGETS = {
           [LISTSXML, "List_LandscapeShowArt_Row"],
           [WIDGETSXML, "Widget_Busy_BlankItems__List_LandscapeShowArt_Row"],
           [LABELSXML, "Label_ShowTitle_Upper"], [LABELSXML, "Label_ShowTitle_Lower"],
-          [IMAGESXML, "Image_Landscape_ShowArt"], [ACTIONSXML, "LandscapeShowArt"],
+          [IMAGESXML, "Image_Landscape_ShowArt"], [DIALOGCUSTOM, "LandscapeShowArt"],
           [GENROW, "LandscapeShowArt"], [GENWALL, "LandscapeShowArt"]],
          nextup_edits),
         ("006-pvr-osd-vertical.json", "pvr-osd-vertical", "feature request to be offered",
