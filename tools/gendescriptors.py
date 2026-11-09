@@ -21,30 +21,43 @@ IDAN = "plugin.video.idanplus"
 SETTING = "View.DisableClearlogoTitle"
 FONT_ADDON = "resource.font.af3hebrew"
 INFO = "1080i/Includes_Info.xml"
-SKINSET = "1080i/Includes_SkinSettings.xml"
+# 3.4.20 moved the skin settings window into JSON that script.skinvariables lays out,
+# one object per setting, shown in key order within its group.
+SKINSET = "shortcuts/skinvariables-skinsettings.json"
+
+
+def _radio_setting(key, group, label, setting, selected, description=None, visible=None):
+    lines = ['        "%s": {' % key,
+             '            "label": "%s",' % label,
+             '            "control": "radiobutton",',
+             '            "group": "%s",' % group]
+    if description:
+        lines.append('            "description": "%s",' % description)
+    lines.append('            "selected": "%s",' % selected)
+    if visible:
+        lines.append('            "visible": "%s",' % visible)
+    lines += ['            "onclick": [',
+              '                {',
+              '                    "action": "Skin.ToggleSetting(%s)"' % setting,
+              '                }',
+              '            ]',
+              '        },']
+    return "\n".join(lines) + "\n"
 FONTXML = "1080i/Font.xml"
 EXPRXML = "1080i/Includes_Expressions.xml"
 
 IMAGE_ANCHOR = '<control type="image">\n                    <height>info_title_logo_h</height>'
 
 SETTINGS_ANCHOR = (
-    "            <onclick>Skin.ToggleSetting(View.UseDetailedListLabels)</onclick>\n"
-    "        </include>\n"
+    '                    "action": "Skin.ToggleSetting(View.UseDetailedListLabels)"\n'
+    "                }\n"
+    "            ]\n"
+    "        },\n"
 )
 
-SETTINGS_BUTTON = SETTINGS_ANCHOR + """
-        <include content="Settings_Button" description="Clearlogo title">
-            <param name="dialog">false</param>
-            <param name="window">skinsettings</param>
-            <param name="baseid">$PARAM[baseid]</param>
-            <param name="id">900</param>
-            <param name="help">Use the clearlogo image for titles where one exists.</param>
-            <param name="control">radiobutton</param>
-            <label>Logo</label>
-            <onclick>Skin.ToggleSetting(%s)</onclick>
-            <selected>!Skin.HasSetting(%s)</selected>
-        </include>
-""" % (SETTING, SETTING)
+SETTINGS_BUTTON = SETTINGS_ANCHOR + _radio_setting(
+    "views_clearlogo_title", "views_viewtypes", "Logo", SETTING, "!Skin.HasSetting(%s)" % SETTING,
+    description="Use the clearlogo image for titles where one exists.")
 
 
 def title_edits(tree):
@@ -340,36 +353,21 @@ SKELETON_DEBUG_BLOCK = ("""
     + SKELETON_DEBUG_ANCHOR[1:])
 
 SKELETON_TOGGLE_ANCHOR = (
-    "            <onclick>SetProperty(CustomDialogSettingsItems,"
-    "DialogCustom_Ratings_TVShows_Items,Home)</onclick>\n"
-    "            <onclick>ActivateWindow(1118)</onclick>\n"
-    "            <visible>$EXP[Exp_TMDbHelper_IsData]</visible>\n"
-    "        </include>\n")
+    '                    "action": "SetProperty(CustomDialogSettingsItems,'
+    'DialogCustom_Ratings_TVShows_Items,Home)"\n'
+    "                },\n"
+    "                {\n"
+    '                    "action": "ActivateWindow(1118)"\n'
+    "                }\n"
+    "            ]\n"
+    "        },\n")
 
-SKELETON_TOGGLE = SKELETON_TOGGLE_ANCHOR + """
-        <include content="Settings_Button" description="Ratings loading placeholder">
-            <param name="dialog">false</param>
-            <param name="window">skinsettings</param>
-            <param name="baseid">$PARAM[baseid]</param>
-            <param name="id">902</param>
-            <param name="control">radiobutton</param>
-            <label>Loading placeholder</label>
-            <onclick>Skin.ToggleSetting(%s)</onclick>
-            <selected>!Skin.HasSetting(%s)</selected>
-            <visible>$EXP[Exp_TMDbHelper_IsData]</visible>
-        </include>
-        <include content="Settings_Button" description="Loading placeholder debug readout">
-            <param name="dialog">false</param>
-            <param name="window">skinsettings</param>
-            <param name="baseid">$PARAM[baseid]</param>
-            <param name="id">903</param>
-            <param name="control">radiobutton</param>
-            <label>Loading placeholder debug</label>
-            <onclick>Skin.ToggleSetting(%s)</onclick>
-            <selected>Skin.HasSetting(%s)</selected>
-            <visible>$EXP[Exp_TMDbHelper_IsData] + !Skin.HasSetting(%s)</visible>
-        </include>
-""" % (SKELETON_SETTING, SKELETON_SETTING, SKELETON_DEBUG, SKELETON_DEBUG, SKELETON_SETTING)
+SKELETON_TOGGLE = SKELETON_TOGGLE_ANCHOR + _radio_setting(
+    "details_ratings_placeholder", "details_ratings", "Loading placeholder", SKELETON_SETTING,
+    "!Skin.HasSetting(%s)" % SKELETON_SETTING, visible="$EXP[Exp_TMDbHelper_IsData]") + _radio_setting(
+    "details_ratings_placeholder_debug", "details_ratings", "Loading placeholder debug", SKELETON_DEBUG,
+    "Skin.HasSetting(%s)" % SKELETON_DEBUG,
+    visible="$EXP[Exp_TMDbHelper_IsData] + !Skin.HasSetting(%s)" % SKELETON_SETTING)
 
 
 def skeleton_edits(tree):

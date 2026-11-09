@@ -7,7 +7,7 @@
       "View.DisableClearlogoTitle"
     ],
     [
-      "1080i/Includes_SkinSettings.xml",
+      "shortcuts/skinvariables-skinsettings.json",
       "View.DisableClearlogoTitle"
     ]
   ],
@@ -72,14 +72,14 @@
       "with": "<visible>[![!String.IsEmpty($PARAM[croplogo]) + $EXP[Exp_TMDbHelper_IsCrop]] | Skin.HasSetting(View.DisableClearlogoTitle)]</visible>"
     },
     {
-      "file": "1080i/Includes_SkinSettings.xml",
+      "file": "shortcuts/skinvariables-skinsettings.json",
       "kind": "insert",
       "count": 1,
       "contexts": [
-        "8fa85a3566791870757da85f3aa95fbb0c648d61658ec50c05931467f583fbe3"
+        "8a707798085bc228a7d3c3481912b6faa616ab24577d6ada1248f0771fd58766"
       ],
-      "find": "            <onclick>Skin.ToggleSetting(View.UseDetailedListLabels)</onclick>\n        </include>\n",
-      "with": "            <onclick>Skin.ToggleSetting(View.UseDetailedListLabels)</onclick>\n        </include>\n\n        <include content=\"Settings_Button\" description=\"Clearlogo title\">\n            <param name=\"dialog\">false</param>\n            <param name=\"window\">skinsettings</param>\n            <param name=\"baseid\">$PARAM[baseid]</param>\n            <param name=\"id\">900</param>\n            <param name=\"help\">Use the clearlogo image for titles where one exists.</param>\n            <param name=\"control\">radiobutton</param>\n            <label>Logo</label>\n            <onclick>Skin.ToggleSetting(View.DisableClearlogoTitle)</onclick>\n            <selected>!Skin.HasSetting(View.DisableClearlogoTitle)</selected>\n        </include>\n"
+      "find": "                    \"action\": \"Skin.ToggleSetting(View.UseDetailedListLabels)\"\n                }\n            ]\n        },\n",
+      "with": "                    \"action\": \"Skin.ToggleSetting(View.UseDetailedListLabels)\"\n                }\n            ]\n        },\n        \"views_clearlogo_title\": {\n            \"label\": \"Logo\",\n            \"control\": \"radiobutton\",\n            \"group\": \"views_viewtypes\",\n            \"description\": \"Use the clearlogo image for titles where one exists.\",\n            \"selected\": \"!Skin.HasSetting(View.DisableClearlogoTitle)\",\n            \"onclick\": [\n                {\n                    \"action\": \"Skin.ToggleSetting(View.DisableClearlogoTitle)\"\n                }\n            ]\n        },\n"
     }
   ]
 }

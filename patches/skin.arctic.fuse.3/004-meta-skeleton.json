@@ -19,11 +19,11 @@
       "name=\"stale\""
     ],
     [
-      "1080i/Includes_SkinSettings.xml",
+      "shortcuts/skinvariables-skinsettings.json",
       "InfoTags.DisableMetaSkeleton"
     ],
     [
-      "1080i/Includes_SkinSettings.xml",
+      "shortcuts/skinvariables-skinsettings.json",
       "InfoTags.DebugMetaSkeleton"
     ]
   ],
@@ -147,14 +147,14 @@
       "with": "\n                    <!-- Skeleton Debug -->\n                    <include content=\"Info_Meta_Object\" condition=\"$EXP[Exp_TMDbHelper_IsData]\">\n                        <param name=\"bordersize\">-12</param>\n                        <param name=\"icon\">special://skin/extras/icons/bug.png</param>\n                        <param name=\"label\">upd:$INFO[Window(Home).Property(TMDbHelper.IsUpdating)] rat:$INFO[Window(Home).Property(TMDbHelper.IsUpdatingRatings)] mon:$INFO[Window(Home).Property(TMDbHelper.ListItem.monitor.tmdb_id)] det:$INFO[Window(Home).Property(TMDbHelper.ListItem.tmdb_id)] base:$INFO[Window(Home).Property(TMDbHelper.ListItem.base_tmdb_id)] cur:$INFO[$PARAM[container]$PARAM[listitem].UniqueID(tmdb)] imdb:$INFO[Window(Home).Property(TMDbHelper.$PARAM[service].IMDb_Rating)] sta:$INFO[Window(Home).Property(TMDbHelper.$PARAM[service].Status)]</param>\n                        <param name=\"visible\">Skin.HasSetting(InfoTags.DebugMetaSkeleton)</param>\n                        <param name=\"max_width\">1200</param>\n                    </include>\n                </control>\n            </control>\n        </definition>\n    </include>\n\n    <include name=\"Info_Meta_Grouplist_Definition\">"
     },
     {
-      "file": "1080i/Includes_SkinSettings.xml",
+      "file": "shortcuts/skinvariables-skinsettings.json",
       "kind": "insert",
       "count": 1,
       "contexts": [
-        "9b29c42d21976919f780aa98321f891a7cc9b1a6719eba17803be269c1c2eab4"
+        "302f1d2a2e34fa1651e754de3504341b88128c5cae454b9fb351b6a38d36a794"
       ],
-      "find": "            <onclick>SetProperty(CustomDialogSettingsItems,DialogCustom_Ratings_TVShows_Items,Home)</onclick>\n            <onclick>ActivateWindow(1118)</onclick>\n            <visible>$EXP[Exp_TMDbHelper_IsData]</visible>\n        </include>\n",
-      "with": "            <onclick>SetProperty(CustomDialogSettingsItems,DialogCustom_Ratings_TVShows_Items,Home)</onclick>\n            <onclick>ActivateWindow(1118)</onclick>\n            <visible>$EXP[Exp_TMDbHelper_IsData]</visible>\n        </include>\n\n        <include content=\"Settings_Button\" description=\"Ratings loading placeholder\">\n            <param name=\"dialog\">false</param>\n            <param name=\"window\">skinsettings</param>\n            <param name=\"baseid\">$PARAM[baseid]</param>\n            <param name=\"id\">902</param>\n            <param name=\"control\">radiobutton</param>\n            <label>Loading placeholder</label>\n            <onclick>Skin.ToggleSetting(InfoTags.DisableMetaSkeleton)</onclick>\n            <selected>!Skin.HasSetting(InfoTags.DisableMetaSkeleton)</selected>\n            <visible>$EXP[Exp_TMDbHelper_IsData]</visible>\n        </include>\n        <include content=\"Settings_Button\" description=\"Loading placeholder debug readout\">\n            <param name=\"dialog\">false</param>\n            <param name=\"window\">skinsettings</param>\n            <param name=\"baseid\">$PARAM[baseid]</param>\n            <param name=\"id\">903</param>\n            <param name=\"control\">radiobutton</param>\n            <label>Loading placeholder debug</label>\n            <onclick>Skin.ToggleSetting(InfoTags.DebugMetaSkeleton)</onclick>\n            <selected>Skin.HasSetting(InfoTags.DebugMetaSkeleton)</selected>\n            <visible>$EXP[Exp_TMDbHelper_IsData] + !Skin.HasSetting(InfoTags.DisableMetaSkeleton)</visible>\n        </include>\n"
+      "find": "                    \"action\": \"SetProperty(CustomDialogSettingsItems,DialogCustom_Ratings_TVShows_Items,Home)\"\n                },\n                {\n                    \"action\": \"ActivateWindow(1118)\"\n                }\n            ]\n        },\n",
+      "with": "                    \"action\": \"SetProperty(CustomDialogSettingsItems,DialogCustom_Ratings_TVShows_Items,Home)\"\n                },\n                {\n                    \"action\": \"ActivateWindow(1118)\"\n                }\n            ]\n        },\n        \"details_ratings_placeholder\": {\n            \"label\": \"Loading placeholder\",\n            \"control\": \"radiobutton\",\n            \"group\": \"details_ratings\",\n            \"selected\": \"!Skin.HasSetting(InfoTags.DisableMetaSkeleton)\",\n            \"visible\": \"$EXP[Exp_TMDbHelper_IsData]\",\n            \"onclick\": [\n                {\n                    \"action\": \"Skin.ToggleSetting(InfoTags.DisableMetaSkeleton)\"\n                }\n            ]\n        },\n        \"details_ratings_placeholder_debug\": {\n            \"label\": \"Loading placeholder debug\",\n            \"control\": \"radiobutton\",\n            \"group\": \"details_ratings\",\n            \"selected\": \"Skin.HasSetting(InfoTags.DebugMetaSkeleton)\",\n            \"visible\": \"$EXP[Exp_TMDbHelper_IsData] + !Skin.HasSetting(InfoTags.DisableMetaSkeleton)\",\n            \"onclick\": [\n                {\n                    \"action\": \"Skin.ToggleSetting(InfoTags.DebugMetaSkeleton)\"\n                }\n            ]\n        },\n"
     }
   ]
 }
