@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="skin.arctic.fuse.3" name="Arctic Fuse 3" provider-name="jurialmunkey" version="3.4.20+ntzb21">
+<addon id="skin.arctic.fuse.3" name="Arctic Fuse 3" provider-name="jurialmunkey" version="3.4.22+ntzb21">
     <requires>
-        <import addon="xbmc.gui" version="5.17.0" />
+        <import addon="xbmc.gui" version="5.18.0" />
         <import addon="script.skinvariables" version="2.2.15" />
         <import addon="script.texturemaker" version="0.2.9" optional="true"/>
-        <import addon="plugin.video.themoviedb.helper" version="6.19.2" />
+        <import addon="plugin.video.themoviedb.helper" version="6.21.5" />
         <import addon="resource.images.weathericons.white" version="0.0.1" />
         <import addon="resource.images.arctic.splash" version="1.1.0" optional="true"/>
         <import addon="resource.images.arctic.weather" version="1.0.4" optional="true"/>
@@ -236,7 +236,7 @@ v3.0.0 (2024-04-17)
   </extension>
 </addon>
 <addon id="plugin.video.themoviedb.helper"
-version="6.21.2+ntzb1"
+version="6.21.5+ntzb1"
 name="TMDb Helper"
 provider-name="jurialmunkey">
 <requires>
@@ -244,7 +244,7 @@ provider-name="jurialmunkey">
   <import addon="script.module.requests" version="2.9.1"/>
   <import addon="script.module.pil" version="1.1.7"/>
   <import addon="script.module.addon.signals" version="0.0.6" />
-  <import addon="script.module.jurialmunkey" version="0.2.35" />
+  <import addon="script.module.jurialmunkey" version="0.2.37" />
   <import addon="script.module.infotagger" version="0.1.0" />
   <import addon="script.module.qrcode" version="6.1.0" />
 </requires>
@@ -284,7 +284,7 @@ provider-name="jurialmunkey">
   </assets>
 </extension>
 </addon>
-<addon id="script.module.jurialmunkey" name="jurialmunkey common" provider-name="jurialmunkey" version="0.2.36+ntzb1">
+<addon id="script.module.jurialmunkey" name="jurialmunkey common" provider-name="jurialmunkey" version="0.2.37+ntzb1">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
     <import addon="script.module.requests" version="2.9.1"/>
