@@ -301,7 +301,7 @@ provider-name="jurialmunkey">
     </assets>
   </extension>
 </addon>
-<addon id="plugin.video.idanplus" name="עידן+ פלוס" version="4.0.5+ntzb1" provider-name="Fishenzon">
+<addon id="plugin.video.idanplus" name="עידן+ פלוס" version="4.0.6+ntzb1" provider-name="Fishenzon">
 		<requires>
 			<import addon="script.module.requests"/>
 			<import addon="script.module.xmltodict"/>
