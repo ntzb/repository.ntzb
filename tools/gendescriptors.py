@@ -43,19 +43,25 @@ def _radio_setting(key, group, label, setting, selected, description=None, visib
               '            ]',
               '        },']
     return "\n".join(lines) + "\n"
+
+
+def _json_setting(tree, key):
+    """Upstream's whole entry for one setting, used as the anchor to insert after.
+
+    Lifted from the tree rather than spelled out: entries keep gaining trailing
+    fields (3.5.2 added search tags), and the entry's own key is the stable part.
+    """
+    with open(os.path.join(tree, SKINSET), "rb") as fh:
+        text = fh.read().decode("utf-8")
+    start = text.index('        "%s": {\n' % key)
+    end = text.index("\n        },\n", start) + len("\n        },\n")
+    return text[start:end]
 FONTXML = "1080i/Font.xml"
 EXPRXML = "1080i/Includes_Expressions.xml"
 
 IMAGE_ANCHOR = '<control type="image">\n                    <height>info_title_logo_h</height>'
 
-SETTINGS_ANCHOR = (
-    '                    "action": "Skin.ToggleSetting(View.UseDetailedListLabels)"\n'
-    "                }\n"
-    "            ]\n"
-    "        },\n"
-)
-
-SETTINGS_BUTTON = SETTINGS_ANCHOR + _radio_setting(
+SETTINGS_BUTTON = _radio_setting(
     "views_clearlogo_title", "views_viewtypes", "Logo", SETTING, "!Skin.HasSetting(%s)" % SETTING,
     description="Use the clearlogo image for titles where one exists.")
 
@@ -76,7 +82,8 @@ def title_edits(tree):
     w = ("<visible>[![!String.IsEmpty($PARAM[croplogo]) + $EXP[Exp_TMDbHelper_IsCrop]] | "
          "Skin.HasSetting(%s)]</visible>" % SETTING)
     yield INFO, "replace", f, w
-    yield SKINSET, "insert", SETTINGS_ANCHOR, SETTINGS_BUTTON
+    anchor = _json_setting(tree, "views_text_labels")
+    yield SKINSET, "insert", anchor, anchor + SETTINGS_BUTTON
 
 
 DBTYPES = " | ".join(
@@ -352,17 +359,7 @@ SKELETON_DEBUG_BLOCK = ("""
 """ % (" ".join("%s:$INFO[%s]" % (k, v) for k, v in _DEBUG_FIELDS), SKELETON_DEBUG)
     + SKELETON_DEBUG_ANCHOR[1:])
 
-SKELETON_TOGGLE_ANCHOR = (
-    '                    "action": "SetProperty(CustomDialogSettingsItems,'
-    'DialogCustom_Ratings_TVShows_Items,Home)"\n'
-    "                },\n"
-    "                {\n"
-    '                    "action": "ActivateWindow(1118)"\n'
-    "                }\n"
-    "            ]\n"
-    "        },\n")
-
-SKELETON_TOGGLE = SKELETON_TOGGLE_ANCHOR + _radio_setting(
+SKELETON_TOGGLE = _radio_setting(
     "details_ratings_placeholder", "details_ratings", "Loading placeholder", SKELETON_SETTING,
     "!Skin.HasSetting(%s)" % SKELETON_SETTING, visible="$EXP[Exp_TMDbHelper_IsData]") + _radio_setting(
     "details_ratings_placeholder_debug", "details_ratings", "Loading placeholder debug", SKELETON_DEBUG,
@@ -381,7 +378,8 @@ def skeleton_edits(tree):
     yield INFO, "insert", SKELETON_DEF_ANCHOR, SKELETON_DEF
     yield INFO, "insert", SKELETON_ROW_ANCHOR, SKELETON_ROW
     yield INFO, "insert", SKELETON_DEBUG_ANCHOR, SKELETON_DEBUG_BLOCK
-    yield SKINSET, "insert", SKELETON_TOGGLE_ANCHOR, SKELETON_TOGGLE
+    anchor = _json_setting(tree, "details_tv_show_ratings")
+    yield SKINSET, "insert", anchor, anchor + SKELETON_TOGGLE
 
 
 def font_edits(tree):
