@@ -238,7 +238,7 @@ v3.0.0 (2024-04-17)
   </extension>
 </addon>
 <addon id="plugin.video.themoviedb.helper"
-version="6.22.3+ntzb1"
+version="6.22.4+ntzb1"
 name="TMDb Helper"
 provider-name="jurialmunkey">
 <requires>
