@@ -17,8 +17,8 @@
       "kind": "replace",
       "count": 2,
       "contexts": [
-        "b3c049f64db4f8148d46e99d7c0162d2f52e51e01456458901cbc455be5cc900",
-        "e48b88aac489dd68df1a90487e4cb871f1f876977bd9ecc077b7429f9e48474a"
+        "ec7761e25362cd3c24321fe1874758dbfe59e36a99b0562b5cfe36198f9be33a",
+        "2845b8b01263a08beb94dc129b883a3ee9fd7536aaaaa5f376874d209f747835"
       ],
       "find": "resource://resource.font.robotocjksc/Inter-Unicode-Regular.ttf",
       "with": "resource://resource.font.af3hebrew/Inter-Unicode-Regular.ttf"
@@ -28,7 +28,7 @@
       "kind": "replace",
       "count": 1,
       "contexts": [
-        "d47d54c287ae90faf2f32e98339edc332a51d15437acfd3170c80dfdd988aab9"
+        "556197c2065433a5852d1e7cf1abce058bff31e5fb9f48a0e4a3e860777dbc4e"
       ],
       "find": "resource://resource.font.robotocjksc/Inter-Unicode-Bold.ttf",
       "with": "resource://resource.font.af3hebrew/Inter-Unicode-Bold.ttf"

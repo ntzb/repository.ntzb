@@ -21,6 +21,7 @@ IDAN = "plugin.video.idanplus"
 SETTING = "View.DisableClearlogoTitle"
 FONT_ADDON = "resource.font.af3hebrew"
 INFO = "1080i/Includes_Info.xml"
+DIALOGPLOT = "1080i/Dialog_DialogPlot.xml"
 # 3.4.20 moved the skin settings window into JSON that script.skinvariables lays out,
 # one object per setting, shown in key order within its group.
 SKINSET = "shortcuts/skinvariables-skinsettings.json"
@@ -237,35 +238,55 @@ OBJECT_ANCHORS = (
     '                <width>-4</width>\n',
 )
 
+# 3.5.6 lets Info_Meta read its row from any source; the plot dialog feeds it from a
+# details list that never goes stale, so the flags are params it can turn off.
+META_PARAM_ANCHOR = '        <param name="include_tmdbhelper">$EXP[Exp_TMDbHelper_IsData]</param>\n'
+META_PARAM = META_PARAM_ANCHOR + (
+    '        <param name="stale_ratings">$EXP[Exp_TMDbHelper_IsStaleRatings]</param>\n'
+    '        <param name="stale_details">$EXP[Exp_TMDbHelper_IsStaleDetails]</param>\n')
+
+RATINGS_PARAM_ANCHOR = '    <include name="Info_Meta_Ratings">\n        <param name="visible">true</param>\n'
+RATINGS_PARAM = RATINGS_PARAM_ANCHOR + '        <param name="stale_ratings">false</param>\n'
+
+RATINGS_CALL_FIND = ('                        <param name="source_prefix">$PARAM[source_prefix]</param>\n'
+                     '                    </include>\n')
+RATINGS_CALL_WITH = ('                        <param name="source_prefix">$PARAM[source_prefix]</param>\n'
+                     '                        <param name="stale_ratings">$PARAM[stale_ratings]</param>\n'
+                     '                    </include>\n')
+
+PLOT_FIND = '                <param name="include_tmdbhelper">true</param>\n'
+PLOT_WITH = PLOT_FIND + ('                <param name="stale_ratings">false</param>\n'
+                         '                <param name="stale_details">false</param>\n')
+
 RATINGS_FIND = ('                <param name="visible">[$PARAM[visible]] + '
-                '!String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].')
+                '!String.IsEmpty($PARAM[source]($PARAM[source_prefix]')
 
 RATINGS_WITH = (
-    '                <param name="stale">$EXP[Exp_TMDbHelper_IsStaleRatings]</param>\n'
-    '                <param name="visible">!$EXP[Exp_TMDbHelper_IsStaleRatings] + '
+    '                <param name="stale">$PARAM[stale_ratings]</param>\n'
+    '                <param name="visible">![$PARAM[stale_ratings]] + '
     '[$PARAM[visible]] + '
-    '!String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].')
+    '!String.IsEmpty($PARAM[source]($PARAM[source_prefix]')
 
 STATUS_FIND = (
     '                        <param name="visible">'
     '[[String.IsEqual($PARAM[container]$PARAM[listitem].DBType,tvshow) | '
     'String.IsEqual($PARAM[container]$PARAM[listitem].DBType,season) | $PARAM[override_tvshow]] + '
-    '!String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].Status))]</param>\n')
+    '!String.IsEmpty($PARAM[status])]</param>\n')
 
 STATUS_WITH = (
-    '                        <param name="stale">$EXP[Exp_TMDbHelper_IsStaleDetails]</param>\n'
+    '                        <param name="stale">$PARAM[stale_details]</param>\n'
     + STATUS_FIND.replace('<param name="visible">[[',
-                          '<param name="visible">!$EXP[Exp_TMDbHelper_IsStaleDetails] + [['))
+                          '<param name="visible">![$PARAM[stale_details]] + [['))
 
 AWARDS_FIND = (
     '                        <param name="visible">'
     '[String.IsEqual($PARAM[container]$PARAM[listitem].DBType,movie) | $PARAM[override_movie]] + '
-    '!String.IsEmpty(Window(Home).Property(TMDbHelper.$PARAM[service].Oscar_Wins))</param>\n')
+    '!String.IsEmpty($PARAM[source]($PARAM[source_prefix]Oscar_Wins))</param>\n')
 
 AWARDS_WITH = (
-    '                        <param name="stale">$EXP[Exp_TMDbHelper_IsStaleRatings]</param>\n'
+    '                        <param name="stale">$PARAM[stale_ratings]</param>\n'
     + AWARDS_FIND.replace('<param name="visible">[String.IsEqual',
-                          '<param name="visible">!$EXP[Exp_TMDbHelper_IsStaleRatings] + [String.IsEqual'))
+                          '<param name="visible">![$PARAM[stale_ratings]] + [String.IsEqual'))
 
 SKELETON_DEF_ANCHOR = '    <include name="Info_Meta_Item_Row">'
 
@@ -281,12 +302,13 @@ SKELETON_DEF_ANCHOR = '    <include name="Info_Meta_Item_Row">'
 # shimmer: no skin sweeps a gradient, because groups do not clip their children.
 SKELETON_DEF = """    <include name="Info_Meta_Skeleton">
         <param name="width">96</param>
+        <param name="stale">false</param>
         <definition>
             <control type="group" description="Placeholder held while TMDbHelper is still answering for this item">
                 <width>$PARAM[width]</width>
                 <height>40</height>
                 <visible>$PARAM[visible]</visible>
-                <visible>$EXP[Exp_TMDbHelper_IsStaleRatings]</visible>
+                <visible>$PARAM[stale]</visible>
                 <animation type="Visible" reversible="false">
                     <effect type="fade" start="0" end="100" time="200" delay="1000" />
                 </animation>
@@ -306,8 +328,9 @@ SKELETON_DEF = """    <include name="Info_Meta_Skeleton">
 
 SKELETON_ROW_ANCHOR = "                    <!-- Ratings -->"
 
-_SKELETON_ITEM = """                    <include content="Info_Meta_Skeleton" condition="$EXP[Exp_TMDbHelper_IsData]">
+_SKELETON_ITEM = """                    <include content="Info_Meta_Skeleton" condition="$PARAM[include_tmdbhelper]">
                         <param name="visible">[%s] + !String.IsEmpty(Skin.String(CustomRating.%s.Item%02d))</param>
+                        <param name="stale">$PARAM[stale_ratings]</param>
                     </include>
 """
 
@@ -343,8 +366,8 @@ _DEBUG_FIELDS = (
     ("det", "Window(Home).Property(TMDbHelper.ListItem.tmdb_id)"),
     ("base", "Window(Home).Property(TMDbHelper.ListItem.base_tmdb_id)"),
     ("cur", "$PARAM[container]$PARAM[listitem].UniqueID(tmdb)"),
-    ("imdb", "Window(Home).Property(TMDbHelper.$PARAM[service].IMDb_Rating)"),
-    ("sta", "Window(Home).Property(TMDbHelper.$PARAM[service].Status)"),
+    ("imdb", "$PARAM[source]($PARAM[source_prefix]IMDb_Rating)"),
+    ("sta", "$PARAM[status]"),
 )
 
 SKELETON_DEBUG_BLOCK = ("""
@@ -372,6 +395,10 @@ def skeleton_edits(tree):
     yield INFO, "insert", OBJECT_PARAM_ANCHOR, OBJECT_PARAM
     for anchor in OBJECT_ANCHORS:
         yield INFO, "insert", anchor, STALE_ANIM + anchor
+    yield INFO, "insert", META_PARAM_ANCHOR, META_PARAM
+    yield INFO, "insert", RATINGS_PARAM_ANCHOR, RATINGS_PARAM
+    yield INFO, "replace", RATINGS_CALL_FIND, RATINGS_CALL_WITH
+    yield DIALOGPLOT, "insert", PLOT_FIND, PLOT_WITH
     yield INFO, "replace", RATINGS_FIND, RATINGS_WITH
     yield INFO, "replace", STATUS_FIND, STATUS_WITH
     yield INFO, "replace", AWARDS_FIND, AWARDS_WITH
