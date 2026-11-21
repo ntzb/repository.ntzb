@@ -38,7 +38,7 @@
       "kind": "insert",
       "count": 1,
       "contexts": [
-        "9fb6a584b2a5a0be8102d3713ddfa1ac85d197607d5cd8a8bba31008fb143223"
+        "c1a441472b8e56f069f00fcbc447dfd865794772c41029f1911d9737084d499b"
       ],
       "find": "    </requires>",
       "with": "        <import addon=\"resource.font.af3hebrew\" version=\"1.1.0\" />\n    </requires>"

@@ -7,6 +7,7 @@ count in an earlier draft was wrong, and it was the only number in the design.
 """
 import json
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -238,55 +239,54 @@ OBJECT_ANCHORS = (
     '                <width>-4</width>\n',
 )
 
-# 3.5.6 lets Info_Meta read its row from any source; the plot dialog feeds it from a
-# details list that never goes stale, so the flags are params it can turn off.
-META_PARAM_ANCHOR = '        <param name="include_tmdbhelper">$EXP[Exp_TMDbHelper_IsData]</param>\n'
+# Info_Meta reads its row from any source; the plot dialog feeds it from a details list
+# that never goes stale, so status and the placeholder take the flags as params it turns off.
+META_PARAM_ANCHOR = ('        <param name="status">Window(Home).Property(TMDbHelper.ListItem.Status)</param>\n'
+                     '        <param name="ratings_id">730</param>\n')
 META_PARAM = META_PARAM_ANCHOR + (
     '        <param name="stale_ratings">$EXP[Exp_TMDbHelper_IsStaleRatings]</param>\n'
     '        <param name="stale_details">$EXP[Exp_TMDbHelper_IsStaleDetails]</param>\n')
-
-RATINGS_PARAM_ANCHOR = '    <include name="Info_Meta_Ratings">\n        <param name="visible">true</param>\n'
-RATINGS_PARAM = RATINGS_PARAM_ANCHOR + '        <param name="stale_ratings">false</param>\n'
-
-RATINGS_CALL_FIND = ('                        <param name="source_prefix">$PARAM[source_prefix]</param>\n'
-                     '                    </include>\n')
-RATINGS_CALL_WITH = ('                        <param name="source_prefix">$PARAM[source_prefix]</param>\n'
-                     '                        <param name="stale_ratings">$PARAM[stale_ratings]</param>\n'
-                     '                    </include>\n')
 
 PLOT_FIND = '                <param name="include_tmdbhelper">true</param>\n'
 PLOT_WITH = PLOT_FIND + ('                <param name="stale_ratings">false</param>\n'
                          '                <param name="stale_details">false</param>\n')
 
-RATINGS_FIND = ('                <param name="visible">[$PARAM[visible]] + '
-                '!String.IsEmpty($PARAM[source]($PARAM[source_prefix]')
+# 3.5.7 builds the ratings from a menu, through includes script.skinvariables generates
+# from templates and only rebuilds when its own hash says so. Nothing is threaded through
+# those: Info_Meta_Ratings_Item is the skin's, and the list id it already carries
+# (ratings_id + menu, 730 library, 731 OSD, 732 the dialogs fed from a details list) names
+# the flag to read.
+RATINGS_LISTS = {"730": True, "731": True, "732": False}
 
-RATINGS_WITH = (
-    '                <param name="stale">$PARAM[stale_ratings]</param>\n'
-    '                <param name="visible">![$PARAM[stale_ratings]] + '
-    '[$PARAM[visible]] + '
-    '!String.IsEmpty($PARAM[source]($PARAM[source_prefix]')
+STALE_LIST_EXPRS = "".join(
+    '    <expression name="Exp_TMDbHelper_IsStaleRatings_%s%d">%s</expression>\n'
+    % (rid, menu, "$EXP[Exp_TMDbHelper_IsStaleRatings]" if live else "false")
+    for rid, live in RATINGS_LISTS.items() for menu in (1, 2, 3))
+
+_ITEM_STALE = "$EXP[Exp_TMDbHelper_IsStaleRatings_$PARAM[list]]"
+
+RATINGS_FIND = ('            <include content="Info_Meta_Ratings_$PARAM[path]">\n'
+                '                <param name="visible">[$PARAM[visible]] + ')
+RATINGS_WITH = ('            <include content="Info_Meta_Ratings_$PARAM[path]">\n'
+                '                <param name="stale">%s</param>\n'
+                '                <param name="visible">![%s] + [$PARAM[visible]] + ' % (_ITEM_STALE, _ITEM_STALE))
+
+# One per rating type, each handing its own fixed params to Info_Meta_Object.
+RATING_TYPE_FIND = ('            <param name="visible">$PARAM[visible]</param>\n'
+                    '            <param name="colordiffuse">$PARAM[colordiffuse]</param>\n')
+RATING_TYPE_WITH = RATING_TYPE_FIND + '            <param name="stale">$PARAM[stale]</param>\n'
 
 STATUS_FIND = (
     '                        <param name="visible">'
     '[[String.IsEqual($PARAM[container]$PARAM[listitem].DBType,tvshow) | '
     'String.IsEqual($PARAM[container]$PARAM[listitem].DBType,season) | $PARAM[override_tvshow]] + '
-    '!String.IsEmpty($PARAM[status])]</param>\n')
+    '!String.IsEmpty($PARAM[status]) + !Skin.HasSetting(Ratings.TVShows.DisableStatus)]</param>\n')
 
 STATUS_WITH = (
     '                        <param name="stale">$PARAM[stale_details]</param>\n'
     + STATUS_FIND.replace('<param name="visible">[[',
                           '<param name="visible">![$PARAM[stale_details]] + [['))
 
-AWARDS_FIND = (
-    '                        <param name="visible">'
-    '[String.IsEqual($PARAM[container]$PARAM[listitem].DBType,movie) | $PARAM[override_movie]] + '
-    '!String.IsEmpty($PARAM[source]($PARAM[source_prefix]Oscar_Wins))</param>\n')
-
-AWARDS_WITH = (
-    '                        <param name="stale">$PARAM[stale_ratings]</param>\n'
-    + AWARDS_FIND.replace('<param name="visible">[String.IsEqual',
-                          '<param name="visible">![$PARAM[stale_ratings]] + [String.IsEqual'))
 
 SKELETON_DEF_ANCHOR = '    <include name="Info_Meta_Item_Row">'
 
@@ -329,27 +329,41 @@ SKELETON_DEF = """    <include name="Info_Meta_Skeleton">
 SKELETON_ROW_ANCHOR = "                    <!-- Ratings -->"
 
 _SKELETON_ITEM = """                    <include content="Info_Meta_Skeleton" condition="$PARAM[include_tmdbhelper]">
-                        <param name="visible">[%s] + !String.IsEmpty(Skin.String(CustomRating.%s.Item%02d))</param>
+                        <param name="visible">[%s] + [%s]</param>
                         <param name="stale">$PARAM[stale_ratings]</param>
                     </include>
 """
 
-# One bar per rating slot the user has actually configured, mirroring the six
-# Info_Meta_Ratings instances it sits above, so the placeholder is the shape of what is
-# coming rather than a guess. Status and awards get no bar of their own: a rating slot is
-# a promise the user made, but whether the next item carries a status or an Oscar is not
-# known until it lands, and a bar that resolves to nothing is worse than a field that was
-# never drawn. They do leave with the rest, on the same timer.
-_SKELETON_DBTYPES = (
-    ("Movies", "String.IsEqual($PARAM[container]$PARAM[listitem].DBType,movie) | $PARAM[override_movie]"),
-    ("TVShows", "String.IsEqual($PARAM[container]$PARAM[listitem].DBType,tvshow) | "
-                "String.IsEqual($PARAM[container]$PARAM[listitem].DBType,season) | $PARAM[override_tvshow]"),
-)
+# The ratings line shows the first three ratings that are available, six with extra_slots,
+# so while the values are stale the bars are the line the last item drew: bar j stands
+# while the running counts (Info_Meta_Ratings_Counts, control {list}{position}{j}) reached
+# j anywhere along the menu. The counts only grow along it, so any position will do, and
+# the menu is shorter than MENU_MAX. Status gets no bar: whether the next item carries one
+# is not known until it lands. It leaves with the rest, on the same timer.
+MENU_MAX = 15
+_RATINGS_CALL = re.compile(
+    r'<include content="skinvariables-ratings(\w+)" condition="\$PARAM\[include_tmdbhelper\]">\n'
+    r'\s*<param name="visible">(.*)</param>\n'
+    r'\s*<param name="list">\$PARAM\[ratings_id\](\d)</param>\n'
+    r'\s*<param name="extra_slots">(.*)</param>\n')
 
-SKELETON_ROW = ("                    <!-- Ratings Placeholder -->\n"
-                + "".join(_SKELETON_ITEM % (cond, content, n)
-                          for content, cond in _SKELETON_DBTYPES for n in (1, 2, 3))
-                + "\n" + SKELETON_ROW_ANCHOR)
+
+def skeleton_row(tree):
+    with open(os.path.join(tree, INFO), "rb") as fh:
+        text = fh.read().decode("utf-8").replace("\r\n", "\n")
+    calls = _RATINGS_CALL.findall(text)
+    assert [c[0] for c in calls] == ["movies", "tvshows", "episodes"], calls
+    items = []
+    for _, visible, menu, extra in calls:
+        for j in range(1, 7):
+            reached = " | ".join("Control.IsVisible($PARAM[ratings_id]%s%d%d)" % (menu, k, j)
+                                 for k in range(1, MENU_MAX + 1))
+            if j > 3:
+                reached = "[%s] + [%s]" % (extra, reached)
+            items.append(_SKELETON_ITEM % (visible, reached))
+    return ("                    <!-- Ratings Placeholder -->\n" + "".join(items)
+            + "\n" + SKELETON_ROW_ANCHOR)
+
 
 # The timings above are reasoned from the service's source, not measured on a running
 # Kodi, so the row can show its own workings: every property the condition is built out
@@ -391,19 +405,17 @@ SKELETON_TOGGLE = _radio_setting(
 
 
 def skeleton_edits(tree):
-    yield EXPRXML, "insert", SKELETON_EXPR_ANCHOR, SKELETON_EXPR
+    yield EXPRXML, "insert", SKELETON_EXPR_ANCHOR, SKELETON_EXPR + STALE_LIST_EXPRS
     yield INFO, "insert", OBJECT_PARAM_ANCHOR, OBJECT_PARAM
     for anchor in OBJECT_ANCHORS:
         yield INFO, "insert", anchor, STALE_ANIM + anchor
     yield INFO, "insert", META_PARAM_ANCHOR, META_PARAM
-    yield INFO, "insert", RATINGS_PARAM_ANCHOR, RATINGS_PARAM
-    yield INFO, "replace", RATINGS_CALL_FIND, RATINGS_CALL_WITH
     yield DIALOGPLOT, "insert", PLOT_FIND, PLOT_WITH
     yield INFO, "replace", RATINGS_FIND, RATINGS_WITH
+    yield INFO, "insert", RATING_TYPE_FIND, RATING_TYPE_WITH
     yield INFO, "replace", STATUS_FIND, STATUS_WITH
-    yield INFO, "replace", AWARDS_FIND, AWARDS_WITH
     yield INFO, "insert", SKELETON_DEF_ANCHOR, SKELETON_DEF
-    yield INFO, "insert", SKELETON_ROW_ANCHOR, SKELETON_ROW
+    yield INFO, "insert", SKELETON_ROW_ANCHOR, skeleton_row(tree)
     yield INFO, "insert", SKELETON_DEBUG_ANCHOR, SKELETON_DEBUG_BLOCK
     anchor = _json_setting(tree, "details_tv_show_ratings")
     yield SKINSET, "insert", anchor, anchor + SKELETON_TOGGLE
