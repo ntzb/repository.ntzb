@@ -76,7 +76,7 @@
       "kind": "insert",
       "count": 1,
       "contexts": [
-        "af554e6b6384d48e2adb14a7ef9cfbb41eb1b10b067a9f0b7179588e50ad33b4"
+        "ce4b1fd22622559115beff3f09a4ec6b285360f5f4cc1e53a88933b10db2324f"
       ],
       "find": "        \"views_text_labels\": {\n            \"label\": \"$LOCALIZE[31292]\",\n            \"control\": \"button\",\n            \"group\": \"views_viewtypes\",\n            \"description\": \"$LOCALIZE[31671]\",\n            \"label2\": \"$VAR[Label_Settings_TextViewMode]\",\n            \"onclick\": [\n                {\n                    \"action\": \"Skin.ToggleSetting(View.UseDetailedListLabels)\"\n                }\n            ]\n        },\n",
       "with": "        \"views_text_labels\": {\n            \"label\": \"$LOCALIZE[31292]\",\n            \"control\": \"button\",\n            \"group\": \"views_viewtypes\",\n            \"description\": \"$LOCALIZE[31671]\",\n            \"label2\": \"$VAR[Label_Settings_TextViewMode]\",\n            \"onclick\": [\n                {\n                    \"action\": \"Skin.ToggleSetting(View.UseDetailedListLabels)\"\n                }\n            ]\n        },\n        \"views_clearlogo_title\": {\n            \"label\": \"Logo\",\n            \"control\": \"radiobutton\",\n            \"group\": \"views_viewtypes\",\n            \"description\": \"Use the clearlogo image for titles where one exists.\",\n            \"selected\": \"!Skin.HasSetting(View.DisableClearlogoTitle)\",\n            \"onclick\": [\n                {\n                    \"action\": \"Skin.ToggleSetting(View.DisableClearlogoTitle)\"\n                }\n            ]\n        },\n"

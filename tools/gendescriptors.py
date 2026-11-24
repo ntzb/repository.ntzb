@@ -912,9 +912,10 @@ BUSY = "".join(
 LAYOUT_ANCHOR = '    <include name="Layout_Landscape">\n'
 ROW_ANCHOR = '    <include name="List_Landscape_Row">\n'
 
-LABELS_BRANCH_HEAD = ('                    <include content="Object_Control" '
-                      'condition="![$PARAM[include_detailed_labels]] + ![$PARAM[use_label]]">')
-LABELS_BRANCH_END = '                    <include content="Object_InfoCircle_Text_Top"'
+LABELS_BRANCH_HEAD = '                    <include content="Object_Control" condition="![$PARAM[use_label]]">'
+LABELS_BRANCH_END = ('                    <control type="group">\n'
+                     '                        <visible>[$PARAM[include_detailed_labels]]')
+_VISIBLE = re.compile(r"<visible>(.*)</visible>")
 
 
 def _labels_copy(tree):
@@ -933,12 +934,17 @@ def _labels_copy(tree):
     labels = _swap(labels, '        <param name="textbox_offset_y">7</param>\n',
                    '        <param name="textbox_offset_y">7</param>\n'
                    '        <param name="item_w">410</param>\n', 1)
-    # Both Object_Control branches go, from the first of them to the detailed heading that
-    # follows. The detailed branch below it is left exactly as upstream wrote it.
+    # Both Object_Control branches go, up to the detailed group that follows, which is left
+    # exactly as upstream wrote it. The pair takes the branches' own visibility, so it gives
+    # way to the detailed group exactly when they do.
     old = _span(labels, LABELS_BRANCH_HEAD, LABELS_BRANCH_END)
     if old.count('<include content="Object_Control"') != 2:
         raise SystemExit("derive: Layout_Labels no longer has two label branches")
-    return labels.replace(old, TWO_LABELS)
+    shown = set(_VISIBLE.findall(old))
+    if len(shown) != 1:
+        raise SystemExit("derive: Layout_Labels branches no longer share one visibility")
+    return labels.replace(old, TWO_LABELS.replace(
+        "<visible>![$PARAM[include_detailed_labels]]</visible>", "<visible>%s</visible>" % shown.pop()))
 
 
 def nextup_edits(tree):
